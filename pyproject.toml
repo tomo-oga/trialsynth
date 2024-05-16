@@ -20,7 +20,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.10"
 gilda = "^1.1.0"
-pandas = "<2"  # indra does not support >=2
+pandas = "^2.2.2"
 tqdm = "^4.66.2"
 indra = {git = "https://github.com/sorgerlab/indra.git"} 
 requests = "^2.31.0"
