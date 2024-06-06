@@ -63,11 +63,45 @@ DataTypes = Literal[
 logger = logging.getLogger(__name__)
 
 
-def get_nodes_by_type():
+def get_nodes_by_type(nodes_by_type: dict, node_type: str) -> list:
+    """
+    Retrieve nodes of a specific type from a node dictionary.
+
+    Parameters
+    ----------
+    nodes_by_type : dict
+        A dictionary where keys are node types and values are lists of nodes.
+
+    node_type : str
+        The type of node to retrieve.
+
+    Returns
+    -------
+    list
+        A list of nodes of the specified type sorted by namespace and ID.
+    """
+    if node_type not in nodes_by_type:
+        logger.warning(f"Node type '{node_type}' not found in dictionary. Returning empty list.")
+        return []
     nodes = sorted(nodes_by_type[node_type], key=lambda x: (x["db_ns"], x["db_id"]))
+    return nodes
+
 
     
 def validate_node_data(processor_name:str, nodes: list[dict]) -> None:
+    """
+    Validate the node data before yielding them.
+
+    Parameters
+    ----------
+    processor_name : str
+        The name of the processor.
+
+    nodes : list[dict]
+        The nodes to validate.
+    """
+
+    # Get the metadata from the nodes
     metadata = sorted(set(key for node in nodes for key in node.data))
     header = "id:ID", ":LABEL", *metadata
     
@@ -87,6 +121,16 @@ def validate_node_data(processor_name:str, nodes: list[dict]) -> None:
 
 
 def validate_edge_data(processor_name:str, edges: list[dict]) -> None:
+    """
+    Validate the edge data before yielding them.
+
+    Parameters
+    ----------
+    processor_name : str
+        The name of the processor.
+    edges : list[dict]
+        The edges to validate.
+    """
     metadata = sorted(set(key for edge in edges for key in edge.data))
     header = ":START_ID", ":END_ID", ":TYPE", *metadata
 
