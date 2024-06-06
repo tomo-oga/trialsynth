@@ -19,30 +19,30 @@ class Processor:
 
     Attributes
     ----------
-        config : Config
+        config: Config
             User-mutable properties of Clinicaltrials.gov data processing
-        fetcher : Fetcher
+        fetcher: Fetcher
             Fetches Clinicaltrials.gov data from the REST API or a saved file
-        storer : Storer
+        storer: Storer
             Stores processed data to disk
-        transformer : Transformer
+        transformer: Transformer
             Transforms raw data into nodes and edges for a graph database
-        node_iterator : method
+        node_iterator: method
             Method to generate nodes from the transformed data
-        nodes_by_type : defaultdict
+        nodes_by_type: defaultdict
             Nodes grouped by type
-        edges : set
+        edges: set
             Edges between nodes
 
     Parameters
     ----------
-        config : Config
+        config: Config
             User-mutable properties of Clinicaltrials.gov data processing
-        fetcher : Fetcher
+        fetcher: Fetcher
             Fetches Clinicaltrials.gov data from the REST API or a saved file
-        storer : Storer
+        storer: Storer
             Stores processed data to disk
-        transformer : Transformer
+        transformer: Transformer
             Transforms raw data into nodes and edges for a graph database
     """
 
@@ -68,7 +68,7 @@ class Processor:
 
         Parameters
         ----------
-            refresh : bool
+            refresh: bool
                 Whether to fetch data from the API even if it exists on disk
         """
         logger.debug("Ensuring input data exists on disk")

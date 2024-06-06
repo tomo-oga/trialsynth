@@ -187,13 +187,13 @@ def validate_nodes(
 
     Parameters
     ----------
-    nodes : Iterable[dict]
+    nodes :
         The nodes to validate.
-    header : Iterable[str]
+    header :
         The header of the output Neo4j ingest file.
-    check_all_data : bool
+    check_all_data :
         If True, check all data keys in the nodes. If False, stop checking
-        when all data keys have been checked. Default: True
+        when all data keys have been checked.
 
     Raises
     ------
@@ -237,13 +237,13 @@ def validate_edges(
 
     Parameters
     ----------
-    relations : Iterable[dict]
+    relations :
         The relations to validate.
-    header : Iterable[str]
+    header :
         The header of the output Neo4j ingest file.
-    check_all_data : bool
+    check_all_data :
         If True, check all data keys in the relations. If False, stop checking
-        when all data keys have been checked. Default: True
+        when all data keys have been checked.
 
     Raises
     ------
@@ -281,18 +281,7 @@ def validate_edges(
 
     
 def validate_headers(headers: Iterable[str]) -> None:
-    """Check for data types in the headers
-
-    Parameters
-    ----------
-    headers : Iterable[str]
-        The headers to check for data types
-
-    Raises
-    ------
-    TypeError
-        If a data type is not recognized by Neo4j
-    """
+    """Check for data types in the headers"""
     for header in headers:
         # If : is in the header and there is something after it check if
         # it's a valid data type
@@ -322,9 +311,9 @@ def data_validator(data_type: str, value: Any):
 
     Parameters
     ----------
-    data_type : str
+    data_type :
         The Neo4j data type to validate against.
-    value : Any
+    value :
         The value to validate.
 
     Raises

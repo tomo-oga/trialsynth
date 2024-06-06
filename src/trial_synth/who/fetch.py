@@ -35,7 +35,7 @@ def load_saved_xml_data(path: Path) -> etree.Element:
 
     Parameters
     ----------
-    path : Path
+    path: Path
         Path to the saved XML data
 
     Returns
@@ -59,7 +59,7 @@ def load_saved_pickled_data(path: Path) -> pd.DataFrame:
 
     Parameters
     ----------
-    path : Path
+    path: Path
         Path to the saved pickled data
 
     Returns

@@ -6,7 +6,6 @@ from pathlib import Path
 import pandas as pd
 import requests
 from tqdm import trange
-from typing import Optional
 
 from .config import FIELDS
 from .rest_api_response_models import UnflattenedTrial
@@ -50,11 +49,11 @@ class Fetcher:
         """
         Fetches data from the Clinicaltrials.gov API
 
-        Parameters
+        Parameters:
         ----------
-            url : str
+            url: str
                 URL of the API endpoint
-            request_parameters : dict
+            request_parameters: dict
                 Parameters to send with the API request
         """
         logger.debug(f"Fetching Clinicaltrials.gov data from {url} with parameters {request_parameters}")
@@ -86,12 +85,12 @@ def flatten_data(data: dict) -> pd.DataFrame:
     """
     Reformat API response data from hierarchical to tabular
 
-    Parameters
+    Parameters:
     ----------
-        data : dict
+        data: dict
             Data from the API response
 
-    Returns
+    Returns:
     -------
         DataFrame
             Data fetched from the API in tabular format
@@ -193,9 +192,9 @@ def load_saved_data(path: Path) -> pd.DataFrame:
     """
     Load saved Clinicaltrials.gov data from a file
 
-    Parameters
+    Parameters:
     ----------
-        path : Path
+        path: Path
             Path to the saved data file
     """
     logger.debug(f"Loading Clinicaltrials.gov data from {path}")
@@ -212,9 +211,9 @@ def send_request(url: str, params: dict) -> dict:
 
     Parameters
     ----------
-        url : str
+        url: str
             URL of the API endpoint
-        params : dict
+        params: dict
             Parameters to send with the API request
 
     Returns
@@ -230,16 +229,16 @@ def send_request(url: str, params: dict) -> dict:
         raise
 
 
-def join_if_not_empty(data: list, delimiter: str = "|") -> Optional[str]:
+def join_if_not_empty(data: list, delimiter: str = "|") -> str | None:
     """
     Join a list of strings with a delimiter if the list is not empty
 
     Parameters
     ----------
-        data : list
+        data: list
             List of strings to join
-        delimiter : Optional[str]
-            Delimiter to use when joining the strings. Default: "|"
+        delimiter: str, default "|"
+            Delimiter to use when joining the strings
 
     """
     if all(data):

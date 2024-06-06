@@ -3,7 +3,6 @@ import re
 from lxml import etree
 import pandas as pd
 from tqdm import tqdm
-from typing import Optional
 
 import bioregistry
 
@@ -68,10 +67,10 @@ def findtext(trial: etree.Element, k: str) -> str:
 
     Parameters
     ----------
-    trial : etree.Element
+    trial: etree.Element
         The trial element
 
-    k : str
+    k: str
         The key of the child element
 
     Returns
@@ -91,10 +90,10 @@ def findlist(el: etree.Element, k: str) -> list:
 
     Parameters
     ----------
-    el : etree.Element
+    el: etree.Element
         The element to search
 
-    k : str
+    k: str
         The key of the child element
 
     Returns
@@ -108,18 +107,18 @@ def findlist(el: etree.Element, k: str) -> list:
     return []
 
 
-def matches_pattern(s: str) -> Optional[str]:
+def matches_pattern(s: str) -> str | None:
     """
-    Matches a string to a pattern and returns the prefix if it matches.
+    Matches a string to a pattern and returns the prefix
 
     Parameters
     ----------
-    s : str
+    s: str
         The string to match
 
     Returns
     -------
-    Optional[str]
+    str | None
         The prefix
 
     """
@@ -128,18 +127,18 @@ def matches_pattern(s: str) -> Optional[str]:
             return PREFIXES[prefix]
 
 
-def transform_mappings(s: str) -> Optional[list[str]]:
+def transform_mappings(s: str) -> list[str] | None:
     """
     Transforms a string of mappings into a list of CURIEs
 
     Parameters
     ----------
-    s : str
+    s: str
         The string of mappings
 
     Returns
     -------
-    Optional[list[str]]
+    list[str] | None
         The list of CURIEs
     """
     if pd.isna(s) or not s:

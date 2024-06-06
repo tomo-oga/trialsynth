@@ -21,27 +21,27 @@ class Processor:
 
     Attributes
     ----------
-    df : DataFrame
-        Transformed WHO data
-    config : Config
-        Configuration for WHO data processing
-    counter : dict
-        Counts of mapped and unmapped entities
-    nodes_df : DataFrame
-        Nodes DataFrame
-    mappings_df : DataFrame
-        Mappings DataFrame
-    matches_dfs : dict
-        Named entity recognition DataFrames
-    full_df : DataFrame
-        Full DataFrame
+        df: DataFrame
+            Transformed WHO data
+        config: Config
+            Configuration for WHO data processing
+        counter: dict
+            Counts of mapped and unmapped entities
+        nodes_df: DataFrame
+            Nodes DataFrame
+        mappings_df: DataFrame
+            Mappings DataFrame
+        matches_dfs: dict
+            Named entity recognition DataFrames
+        full_df: DataFrame
+            Full DataFrame
 
     Parameters
     ----------
-    transformed_data: DataFrame
-        Transformed WHO data
-    config: Config
-        Configuration for WHO data processing
+        transformed_data: DataFrame
+            Transformed WHO data
+        config: Config
+            Configuration for WHO data processing
     """
     def __init__(self, transformed_data: pd.DataFrame, config: Config):
         self.df = transformed_data
@@ -97,7 +97,6 @@ class Processor:
     def process_matches(self) -> None:
         """
         Processes named entity recognition from the transformed data and stores them in the matches_dfs dictionary.
-
         The keys are the columns to process and the values are the DataFrames of named entities recognized in those columns.
         Stores the full DataFrame in full_df and writes it to disk as compressed TSV.
         """
