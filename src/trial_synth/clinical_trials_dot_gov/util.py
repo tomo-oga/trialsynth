@@ -13,7 +13,7 @@ def ensure_output_directory_exists(path: Path = DATA_DIR) -> None:
 
     Parameters
     ----------
-    path: Path
+    path : Path
         Path to the output directory
     """
     try:

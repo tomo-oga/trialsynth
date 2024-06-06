@@ -21,25 +21,25 @@ class Storer:
 
     Attributes
     ----------
-        node_iterator: method
-            Method to generate nodes from the transformed data
-        node_types: list
-            Types of nodes
-        node_types_to_paths: dict
-            Paths to save nodes
-        edges_path: Path
-            Path to save edges
-        edges_sample_path: Path
-            Path to save sample edges
+    node_iterator : function
+        Function to generate nodes from the transformed data
+    node_types : list
+        Types of nodes
+    node_types_to_paths : dict
+        Paths to save nodes
+    edges_path : Path
+        Path to save edges
+    edges_sample_path : Path
+        Path to save sample edges
 
     Parameters
     ----------
-        node_iterator: method
-            Method to generate nodes from the transformed data
-        node_types: list
-            Types of nodes
-        data_directory: Path
-            Directory to save data
+    node_iterator : method
+        Method to generate nodes from the transformed data
+    node_types : list
+        Types of nodes
+    data_directory : Path
+        Directory to save data
     """
 
     def __init__(self, node_iterator: Callable, node_types: list[str], data_directory: Path):
@@ -62,10 +62,10 @@ class Storer:
 
         Parameters
         ----------
-            data: DataFrame
-                Data to save
-            path: Path
-                Path to save the data
+        data : DataFrame
+            Data to save
+        path : Path
+            Path to save the data
         """
         logger.debug(f"Saving Clinicaltrials.gov data to {path}")
         try:
@@ -112,14 +112,14 @@ class Storer:
 
         Parameters
         ----------
-            nodes: list
-                List of nodes to dump
-            nodes_path: Path
-                Path to save the nodes
-            sample_path: Path, default None
-                Path to save a sample of the nodes
-            write_mode: str, default "wt"
-                Write mode for the file
+        nodes : list
+            List of nodes to dump
+        nodes_path : Path
+            Path to save the nodes
+        sample_path : Path
+            Path to save a sample of the nodes. Default: None
+        write_mode : str
+            Write mode for the file. Default: 'wt'
         """
         logger.info(f"Dumping node data into {nodes_path}")
         if sample_path:
@@ -159,10 +159,10 @@ class Storer:
 
         Parameters
         ----------
-            rels: list
-                List of edges to save
-            write_mode: str, default "wt"
-                Write mode for the file
+        rels : list
+            List of edges to save
+        write_mode : str
+            Write mode for the file. Default: 'wt'
         """
         logger.info(f"Dumping edge data into {self.edges_path}...")
 
@@ -201,7 +201,8 @@ class Storer:
 
 
 def norm_id(db_ns, db_id) -> str:
-    """Normalize an identifier.
+    """
+    Normalize an identifier.
 
     Parameters
     ----------
