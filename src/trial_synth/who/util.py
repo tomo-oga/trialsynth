@@ -43,6 +43,9 @@ PREFIXES = {
 
 
 def get_patterns() -> dict:
+    """
+    Get compiled regular expression patterns for the prefixes
+    """
     rv = {}
     for k, v in PREFIXES.items():
         if not v:
@@ -59,6 +62,22 @@ PATTERNS = get_patterns()
 
 
 def findtext(trial: etree.Element, k: str) -> str:
+    """
+    Find the text of a child element of a trial
+
+    Parameters
+    ----------
+    trial: etree.Element
+        The trial element
+
+    k: str
+        The key of the child element
+
+    Returns
+    -------
+    str
+        The text of the child element
+    """
     if v := trial.find(k):
         if v.text:
             return v.text.replace("<br>", "\n").strip()
@@ -66,6 +85,22 @@ def findtext(trial: etree.Element, k: str) -> str:
 
 
 def findlist(el: etree.Element, k: str) -> list:
+    """
+    Find a list of values from an element joined by semicolons
+
+    Parameters
+    ----------
+    el: etree.Element
+        The element to search
+
+    k: str
+        The key of the child element
+
+    Returns
+    -------
+    list
+        The list of values
+    """
     v = findtext(el, k)
     if v:
         return sorted(x for x in {x.strip() for x in v.split(";")} if x)
@@ -73,12 +108,39 @@ def findlist(el: etree.Element, k: str) -> list:
 
 
 def matches_pattern(s: str) -> str | None:
+    """
+    Matches a string to a pattern and returns the prefix
+
+    Parameters
+    ----------
+    s: str
+        The string to match
+
+    Returns
+    -------
+    str | None
+        The prefix
+
+    """
     for prefix, pattern in PATTERNS.items():
         if pattern.match(s):
             return PREFIXES[prefix]
 
 
 def transform_mappings(s: str) -> list[str] | None:
+    """
+    Transforms a string of mappings into a list of CURIEs
+
+    Parameters
+    ----------
+    s: str
+        The string of mappings
+
+    Returns
+    -------
+    list[str] | None
+        The list of CURIEs
+    """
     if pd.isna(s) or not s:
         return None
     curies = []

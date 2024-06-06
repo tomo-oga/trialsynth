@@ -17,7 +17,7 @@ class Processor:
     """
     Processes Clinicaltrials.gov data using Config, Fetcher, Storer, and Transformer objects.
 
-    Attributes:
+    Attributes
     ----------
         config: Config
             User-mutable properties of Clinicaltrials.gov data processing
@@ -34,7 +34,7 @@ class Processor:
         edges: set
             Edges between nodes
 
-    Parameters:
+    Parameters
     ----------
         config: Config
             User-mutable properties of Clinicaltrials.gov data processing
@@ -66,7 +66,7 @@ class Processor:
         """
         Ensures that the input data exists on disk, either by fetching from the API or loading from a saved file
 
-        Parameters:
+        Parameters
         ----------
             refresh: bool
                 Whether to fetch data from the API even if it exists on disk

@@ -11,7 +11,7 @@ def ensure_output_directory_exists(path: Path = DATA_DIR) -> None:
     """
     Ensures that the output directory exists
 
-    Parameters:
+    Parameters
     ----------
     path: Path
         Path to the output directory

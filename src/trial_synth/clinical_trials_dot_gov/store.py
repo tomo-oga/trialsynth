@@ -19,7 +19,7 @@ class Storer:
     """
     Stores processed data to disk.
 
-    Attributes:
+    Attributes
     ----------
         node_iterator: method
             Method to generate nodes from the transformed data
@@ -32,7 +32,7 @@ class Storer:
         edges_sample_path: Path
             Path to save sample edges
 
-    Parameters:
+    Parameters
     ----------
         node_iterator: method
             Method to generate nodes from the transformed data
@@ -60,7 +60,7 @@ class Storer:
         """
         Saves data to disk as a compressed TSV file.
 
-        Parameters:
+        Parameters
         ----------
             data: DataFrame
                 Data to save
@@ -110,7 +110,7 @@ class Storer:
         """
         Dump node data to a path as a compressed TSV file.
 
-        Parameters:
+        Parameters
         ----------
             nodes: list
                 List of nodes to dump
@@ -157,7 +157,7 @@ class Storer:
         """
         Save edge data to disk as a compressed TSV file.
 
-        Parameters:
+        Parameters
         ----------
             rels: list
                 List of edges to save

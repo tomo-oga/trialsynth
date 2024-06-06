@@ -16,7 +16,33 @@ logger = logging.getLogger(__name__)
 
 
 class Processor:
+    """
+    Processes transformed WHO data into nodes and edges.
 
+    Attributes
+    ----------
+        df: DataFrame
+            Transformed WHO data
+        config: Config
+            Configuration for WHO data processing
+        counter: dict
+            Counts of mapped and unmapped entities
+        nodes_df: DataFrame
+            Nodes DataFrame
+        mappings_df: DataFrame
+            Mappings DataFrame
+        matches_dfs: dict
+            Named entity recognition DataFrames
+        full_df: DataFrame
+            Full DataFrame
+
+    Parameters
+    ----------
+        transformed_data: DataFrame
+            Transformed WHO data
+        config: Config
+            Configuration for WHO data processing
+    """
     def __init__(self, transformed_data: pd.DataFrame, config: Config):
         self.df = transformed_data
         self.config = config
@@ -27,7 +53,11 @@ class Processor:
         self.full_df = None
 
     def process_nodes(self) -> None:
+        """
+        Processes nodes from the transformed data and stores them in the nodes_df DataFrame
+        """
         logger.info("Processing nodes")
+
         nodes_df = self.df[["curie", "name", "type"]].copy().sort_values("curie")
         nodes_df[":LABEL"] = nodes_df["curie"].map(lambda s: s.split(":")[0] + ";trial")
         nodes_df.rename(columns={"curie": "curie:ID"}, inplace=True)
@@ -35,7 +65,11 @@ class Processor:
         self.nodes_df = nodes_df[~clinicaltrialsgov_idx]  # don't re-add these
 
     def process_mappings(self) -> None:
+        """
+        Processes mappings from the transformed data and stores them in the mappings_df DataFrame
+        """
         logger.info("Processing mappings")
+
         curie_to_name = dict(self.df[["curie", "name"]].values)
 
         mapping_rows = []
@@ -61,6 +95,11 @@ class Processor:
         ).sort_values([":START_ID", ":END_ID"])
 
     def process_matches(self) -> None:
+        """
+        Processes named entity recognition from the transformed data and stores them in the matches_dfs dictionary.
+        The keys are the columns to process and the values are the DataFrames of named entities recognized in those columns.
+        Stores the full DataFrame in full_df and writes it to disk as compressed TSV.
+        """
         logger.info("Processing matches")
         for curie in self.counter[False][:5]:
             logging.info(f"https://bioregistry.io/{curie}")
@@ -150,12 +189,18 @@ class Processor:
             store_dataframe_as_flat_file(matches_df.head(100), output_sample_path, "\t", False)
 
     def process_full_dataframe(self) -> None:
+        """
+        Processes the full DataFrame by concatenating the mappings DataFrame and the DataFrames of named entities recognized in the columns.
+        """
         logger.info("Processing full dataframe")
         self.full_df = pd.concat([self.mappings_df, *self.matches_dfs.values()]).sort_values(":START_ID")
         self.full_df = self.full_df[[":START_ID", ":END_ID", ":TYPE", "curie", self.config.source_key]]
         self.full_df = self.full_df.drop_duplicates()
 
     def process_who_data(self) -> None:
+        """
+        Processes WHO data by calling the process_nodes, process_mappings, process_matches, and process_full_dataframe methods.
+        """
         logger.info("Processing WHO data")
         self.process_nodes()
         store_dataframe_as_flat_file(self.nodes_df, self.config.nodes_path, "\t", False)

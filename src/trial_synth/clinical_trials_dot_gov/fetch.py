@@ -209,14 +209,14 @@ def send_request(url: str, params: dict) -> dict:
     """
     Send a request to the Clinicaltrials.gov API and return the response as JSON
 
-    Parameters:
+    Parameters
     ----------
         url: str
             URL of the API endpoint
         params: dict
             Parameters to send with the API request
 
-    Returns:
+    Returns
     -------
         dict
             JSON response from the API
@@ -233,7 +233,7 @@ def join_if_not_empty(data: list, delimiter: str = "|") -> str | None:
     """
     Join a list of strings with a delimiter if the list is not empty
 
-    Parameters:
+    Parameters
     ----------
         data: list
             List of strings to join
