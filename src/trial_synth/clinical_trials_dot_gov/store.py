@@ -16,6 +16,31 @@ logger = logging.getLogger(__name__)
 
 
 class Storer:
+    """
+    Stores processed data to disk.
+
+    Attributes:
+    ----------
+        node_iterator: method
+            Method to generate nodes from the transformed data
+        node_types: list
+            Types of nodes
+        node_types_to_paths: dict
+            Paths to save nodes
+        edges_path: Path
+            Path to save edges
+        edges_sample_path: Path
+            Path to save sample edges
+
+    Parameters:
+    ----------
+        node_iterator: method
+            Method to generate nodes from the transformed data
+        node_types: list
+            Types of nodes
+        data_directory: Path
+            Directory to save data
+    """
 
     def __init__(self, node_iterator: Callable, node_types: list[str], data_directory: Path):
         self.node_iterator = node_iterator
@@ -32,6 +57,16 @@ class Storer:
         self.edges_sample_path = Path(data_directory, "edges_sample.tsv")
 
     def save_data(self, data: pd.DataFrame, path: Path) -> None:
+        """
+        Saves data to disk as a compressed TSV file.
+
+        Parameters:
+        ----------
+            data: DataFrame
+                Data to save
+            path: Path
+                Path to save the data
+        """
         logger.debug(f"Saving Clinicaltrials.gov data to {path}")
         try:
             data.to_csv(path, sep="\t", index=False, compression="gzip")
@@ -40,6 +75,9 @@ class Storer:
             raise
 
     def save_node_data(self) -> None:
+        """
+        Save node data to disk as compressed TSV files.
+        """
         nodes_by_type = defaultdict(list)
         # Get all the nodes
         nodes = tqdm(
@@ -69,6 +107,20 @@ class Storer:
         sample_path=None,
         write_mode="wt"
     ):
+        """
+        Dump node data to a path as a compressed TSV file.
+
+        Parameters:
+        ----------
+            nodes: list
+                List of nodes to dump
+            nodes_path: Path
+                Path to save the nodes
+            sample_path: Path, default None
+                Path to save a sample of the nodes
+            write_mode: str, default "wt"
+                Write mode for the file
+        """
         logger.info(f"Dumping node data into {nodes_path}")
         if sample_path:
             logger.info(f"Dumping sample node data into {sample_path}")
@@ -102,6 +154,16 @@ class Storer:
         
     # def dump_edges(self, rels, write_mode="wt"):
     def save_edge_data(self, rels, write_mode="wt"):
+        """
+        Save edge data to disk as a compressed TSV file.
+
+        Parameters:
+        ----------
+            rels: list
+                List of edges to save
+            write_mode: str, default "wt"
+                Write mode for the file
+        """
         logger.info(f"Dumping edge data into {self.edges_path}...")
 
         metadata = sorted(set(key for rel in rels for key in rel.data))
@@ -150,7 +212,7 @@ def norm_id(db_ns, db_id) -> str:
 
     Returns
     -------
-    :
+    str :
         The normalized identifier.
     """
 
