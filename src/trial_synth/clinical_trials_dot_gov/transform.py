@@ -22,16 +22,45 @@ def or_na(x):
 
 
 def isna(x):
+    """
+    Check if a value is NaN or None.
+    """
     return True if pd.isna(x) or not x else False
 
 
 def _get_phase(phase_string: str) -> int:
+    """
+    Extract the phase number from a phase string.
+
+    Parameters
+    ----------
+    phase_string : str
+        The phase string to extract the phase number from.
+
+    Returns
+    -------
+    int
+        The phase number extracted from the phase string.
+    """
     if phase_string and pd.notna(phase_string) and phase_string[-1].isdigit():
         return int(phase_string[-1])
     return -1
 
 
 def _get_start_year(start_date: str) -> int | None:
+    """
+    Extract the start year from a start date string.
+
+    Parameters
+    ----------
+    start_date : str
+        The start date string to extract the start year from.
+
+    Returns
+    -------
+    int
+        The start year extracted from the start date string.
+    """
     if isna(start_date):
         return None
     match = re.search(r"\d{4}", start_date)
@@ -40,7 +69,22 @@ def _get_start_year(start_date: str) -> int | None:
     return None
 
 
-def get_correct_mesh_id(mesh_id, mesh_term=None):
+def get_correct_mesh_id(mesh_id, mesh_term=None) -> str:
+    """
+    Get a correct MeSH ID from a possibly incorrect one.
+
+    Parameters
+    ----------
+    mesh_id : str
+        The MeSH ID to correct.
+    mesh_term : str
+        The MeSH term corresponding to the MeSH ID.
+
+    Returns
+    -------
+    str
+        The corrected MeSH ID.
+    """
     # A proxy for checking whether something is a valid MeSH term is
     # to look up its name
     name = mesh_client.get_mesh_name(mesh_id, offline=True)
@@ -68,6 +112,19 @@ def get_correct_mesh_id(mesh_id, mesh_term=None):
 
 
 def ground_condition(condition: str) -> list[gilda.grounder.ScoredMatch]:
+    """
+    Ground a condition string to a standard ontology.
+
+    Parameters
+    ----------
+    condition : str
+        The condition to ground.
+
+    Returns
+    -------
+    list[gilda.grounder.ScoredMatch]
+        The grounded condition.
+    """
     matches = gilda.ground(condition)
     matches = [
         match
@@ -80,6 +137,14 @@ def ground_condition(condition: str) -> list[gilda.grounder.ScoredMatch]:
 
 
 def ground_drug(drug: str) -> list[gilda.grounder.ScoredMatch]:
+    """
+    Ground a drug string to a standard ontology.
+
+    Parameters
+    ----------
+    drug : str
+        The drug to ground.
+    """
     matches = gilda.ground(drug)
     if matches:
         return matches[0].term
@@ -110,6 +175,28 @@ def standardize(prefix: str, identifier: str) -> tuple[str, str]:
 
 
 class Transformer:
+    """
+    Transform ClinicalTrials.gov data into nodes and edges for a graph database.
+
+    Attributes
+    ----------
+    has_trial_cond_ns : list
+        The namespaces of conditions in trials.
+    has_trial_cond_id : list
+        The IDs of conditions in trials.
+    has_trial_nct : list
+        The NCT IDs of trials.
+    tested_in_int_ns : list
+        The namespaces of interventions tested in trials.
+    tested_in_int_id : list
+        The IDs of interventions tested in trials.
+    tested_in_nct : list
+        The NCT IDs of trials.
+    problematic_mesh_ids : list
+        The problematic MeSH IDs.
+    df : DataFrame
+        The DataFrame to transform.
+    """
 
     def __init__(self):
         self.has_trial_cond_ns = []
@@ -149,6 +236,9 @@ class Transformer:
     
     # def get_nodes(self):
     def get_nodes(self) -> Iterator:
+        """
+        Get nodes from the DataFrame.
+        """
         nctid_to_data = {}
         yielded_nodes = set()
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
@@ -265,6 +355,9 @@ class Transformer:
         )
 
     def get_edges(self):
+        """
+        Get edges from the DataFrame and the transformed data.
+        """
         added = set()
         for cond_ns, cond_id, target_id in zip(
             self.has_trial_cond_ns, self.has_trial_cond_id, self.has_trial_nct
