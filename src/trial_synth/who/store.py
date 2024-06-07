@@ -13,13 +13,13 @@ def store_dataframe_as_flat_file(dataframe: pd.DataFrame, path: Path, delimiter:
 
     Parameters
     ----------
-    dataframe: DataFrame
+    dataframe : DataFrame
         DataFrame to store
-    path: Path
+    path : Path
         Path to store the DataFrame
-    delimiter: str
+    delimiter : str
         Delimiter for the flat file
-    index: bool, default False
+    index : bool, default False
         Whether to include the index in the flat file
     """
     try:

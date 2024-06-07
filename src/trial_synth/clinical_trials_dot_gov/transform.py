@@ -1,7 +1,7 @@
 from collections import Counter
 import logging
 import re
-from typing import Iterator
+from typing import Iterator, Optional
 
 from addict import Dict
 import pandas as pd
@@ -47,7 +47,7 @@ def _get_phase(phase_string: str) -> int:
     return -1
 
 
-def _get_start_year(start_date: str) -> int | None:
+def _get_start_year(start_date: str) -> Optional[int]:
     """
     Extract the start year from a start date string.
 
@@ -58,7 +58,7 @@ def _get_start_year(start_date: str) -> int | None:
 
     Returns
     -------
-    int
+    Optional[int]
         The start year extracted from the start date string.
     """
     if isna(start_date):
@@ -69,7 +69,7 @@ def _get_start_year(start_date: str) -> int | None:
     return None
 
 
-def get_correct_mesh_id(mesh_id, mesh_term=None) -> str:
+def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str]=None) -> str:
     """
     Get a correct MeSH ID from a possibly incorrect one.
 
@@ -77,8 +77,8 @@ def get_correct_mesh_id(mesh_id, mesh_term=None) -> str:
     ----------
     mesh_id : str
         The MeSH ID to correct.
-    mesh_term : str
-        The MeSH term corresponding to the MeSH ID.
+    mesh_term : Optional[str]
+        The MeSH term corresponding to the MeSH ID. Default is None.
 
     Returns
     -------
@@ -156,14 +156,14 @@ def standardize(prefix: str, identifier: str) -> tuple[str, str]:
 
     Parameters
     ----------
-    prefix :
+    prefix : str
         The prefix to standardize.
-    identifier :
+    identifier : str
         The identifier to standardize.
 
     Returns
     -------
-    :
+    tuple[str, str] :
         A tuple of the standardized prefix and identifier.
     """
 

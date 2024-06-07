@@ -21,7 +21,7 @@ def transform_xml_data(tree: etree.Element) -> pd.DataFrame:
 
     Parameters
     ----------
-    tree: etree.Element
+    tree : etree.Element
         Parsed XML data
 
     Returns

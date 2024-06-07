@@ -7,9 +7,9 @@ def is_valid(pattern: str, trial_id: str) -> bool:
 
     Parameters
     ----------
-    pattern: str
+    pattern : str
         The pattern to validate against
-    trial_id: str
+    trial_id : str
         The trial ID to validate
 
     Returns
