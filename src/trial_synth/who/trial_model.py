@@ -2,8 +2,7 @@ from pydantic import BaseModel
 
 
 class WHOTrial(BaseModel):
-    """
-    WHO Trial model
+    """WHO Trial model
 
     Attributes
     ----------

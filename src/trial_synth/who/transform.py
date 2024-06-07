@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def transform_xml_data(tree: etree.Element) -> pd.DataFrame:
-    """
-    Transforms WHO data from XML into a DataFrame
+    """Transforms WHO data from XML into a DataFrame
 
     Parameters
     ----------
@@ -28,6 +27,11 @@ def transform_xml_data(tree: etree.Element) -> pd.DataFrame:
     -------
     DataFrame
         Transformed WHO data
+
+    Raises
+    ------
+    ValueError
+        If the trial ID is not recognized
     """
     logger.info("Transforming WHO data from XML into dataframe")
     rows = []

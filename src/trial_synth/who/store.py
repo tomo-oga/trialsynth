@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def store_dataframe_as_flat_file(dataframe: pd.DataFrame, path: Path, delimiter: str = "\t", index: bool = False) -> None:
-    """
-    Stores a DataFrame as a flat file.
+    """Stores a DataFrame as a flat file.
 
     Parameters
     ----------

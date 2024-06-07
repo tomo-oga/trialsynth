@@ -2,8 +2,7 @@ from .util import PATTERNS
 
 
 def is_valid(pattern: str, trial_id: str) -> bool:
-    """
-    Validates a trial ID against a pattern
+    """Validates a trial ID against a pattern
 
     Parameters
     ----------

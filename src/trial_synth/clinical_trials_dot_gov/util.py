@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def ensure_output_directory_exists(path: Path = DATA_DIR) -> None:
-    """
-    Ensures that the output directory exists
+    """Ensures that the output directory exists
 
     Parameters
     ----------

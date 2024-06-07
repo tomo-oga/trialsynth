@@ -18,26 +18,25 @@ logger = logging.getLogger(__name__)
 
 
 class Fetcher:
-    """
-    Fetches Clinicaltrials.gov data from the REST API or a saved file
+    """Fetches Clinicaltrials.gov data from the REST API or a saved file
 
-    Attributes:
+    Attributes
     ----------
-        raw_data: DataFrame
-            Raw data from the API or saved file
-        url: str
-            URL of the API endpoint
-        request_parameters: dict
-            Parameters to send with the API request
-        total_pages: int
-            Total number of pages of data that were fetched from the API
+    raw_data : DataFrame
+        Raw data from the API or saved file
+    url : str
+        URL of the API endpoint
+    request_parameters : dict
+        Parameters to send with the API request
+    total_pages : int
+        Total number of pages of data that were fetched from the API
 
-    Parameters:
+    Parameters
     ----------
-        url: str
-            URL of the API endpoint
-        request_parameters: dict
-            Parameters to send with the API request
+    url : str
+        URL of the API endpoint
+    request_parameters : dict
+        Parameters to send with the API request
     """
 
     def __init__(self, url, request_parameters):
@@ -47,15 +46,14 @@ class Fetcher:
         self.total_pages = 0
 
     def get_api_data(self, url: str, request_parameters: dict) -> None:
-        """
-        Fetches data from the Clinicaltrials.gov API
+        """Fetches data from the Clinicaltrials.gov API
 
         Parameters
         ----------
-            url : str
-                URL of the API endpoint
-            request_parameters : dict
-                Parameters to send with the API request
+        url : str
+            URL of the API endpoint
+        request_parameters : dict
+            Parameters to send with the API request
         """
         logger.debug(f"Fetching Clinicaltrials.gov data from {url} with parameters {request_parameters}")
 
@@ -83,18 +81,17 @@ class Fetcher:
 
 
 def flatten_data(data: dict) -> pd.DataFrame:
-    """
-    Reformat API response data from hierarchical to tabular
+    """Reformat API response data from hierarchical to tabular
 
     Parameters
     ----------
-        data : dict
-            Data from the API response
+    data : dict
+        Data from the API response
 
     Returns
     -------
-        DataFrame
-            Data fetched from the API in tabular format
+    DataFrame
+        Data fetched from the API in tabular format
 
     """
     logger.debug("Reformatting API response data from hierarchical to tabular")
@@ -190,13 +187,12 @@ def flatten_data(data: dict) -> pd.DataFrame:
 
 
 def load_saved_data(path: Path) -> pd.DataFrame:
-    """
-    Load saved Clinicaltrials.gov data from a file
+    """Load saved Clinicaltrials.gov data from a file
 
     Parameters
     ----------
-        path : Path
-            Path to the saved data file
+    path : Path
+        Path to the saved data file
     """
     logger.debug(f"Loading Clinicaltrials.gov data from {path}")
 
@@ -207,20 +203,19 @@ def load_saved_data(path: Path) -> pd.DataFrame:
 
 
 def send_request(url: str, params: dict) -> dict:
-    """
-    Send a request to the Clinicaltrials.gov API and return the response as JSON
+    """Send a request to the Clinicaltrials.gov API and return the response as JSON
 
     Parameters
     ----------
-        url : str
-            URL of the API endpoint
-        params : dict
-            Parameters to send with the API request
+    url : str
+        URL of the API endpoint
+    params : dict
+        Parameters to send with the API request
 
     Returns
     -------
-        dict
-            JSON response from the API
+    dict
+        JSON response from the API
     """
     try:
         response = requests.get(url, params)
@@ -231,15 +226,14 @@ def send_request(url: str, params: dict) -> dict:
 
 
 def join_if_not_empty(data: list, delimiter: str = "|") -> Optional[str]:
-    """
-    Join a list of strings with a delimiter if the list is not empty
+    """Join a list of strings with a delimiter if the list is not empty
 
     Parameters
     ----------
-        data : list
-            List of strings to join
-        delimiter : Optional[str]
-            Delimiter to use when joining the strings. Default: "|"
+    data : list
+        List of strings to join
+    delimiter : Optional[str]
+        Delimiter to use when joining the strings. Default: "|"
 
     """
     if all(data):

@@ -63,8 +63,7 @@ PATTERNS = get_patterns()
 
 
 def findtext(trial: etree.Element, k: str) -> str:
-    """
-    Find the text of a child element of a trial
+    """Find the text of a child element of a trial
 
     Parameters
     ----------
@@ -86,8 +85,7 @@ def findtext(trial: etree.Element, k: str) -> str:
 
 
 def findlist(el: etree.Element, k: str) -> list:
-    """
-    Find a list of values from an element joined by semicolons
+    """Find a list of values from an element joined by semicolons
 
     Parameters
     ----------
@@ -109,8 +107,7 @@ def findlist(el: etree.Element, k: str) -> list:
 
 
 def matches_pattern(s: str) -> Optional[str]:
-    """
-    Matches a string to a pattern and returns the prefix if it matches.
+    """Matches a string to a pattern and returns the prefix if it matches.
 
     Parameters
     ----------
@@ -129,8 +126,7 @@ def matches_pattern(s: str) -> Optional[str]:
 
 
 def transform_mappings(s: str) -> Optional[list[str]]:
-    """
-    Transforms a string of mappings into a list of CURIEs
+    """Transforms a string of mappings into a list of CURIEs
 
     Parameters
     ----------

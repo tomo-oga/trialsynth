@@ -59,7 +59,6 @@ root.setLevel(LOGGING_LEVEL)
 class Config:
     """
     User-mutable properties of Clinicaltrials.gov data processing
-
     """
 
     name = PROCESSOR_NAME

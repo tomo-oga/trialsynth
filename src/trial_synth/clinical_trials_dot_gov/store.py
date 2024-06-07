@@ -4,7 +4,7 @@ import logging
 import gzip
 from pathlib import Path
 import pickle
-from typing import Callable
+from typing import Callable, Iterator
 
 import pandas as pd
 from tqdm import tqdm
@@ -16,14 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 class Storer:
-    """
-    Stores processed data to disk.
+    """Stores processed data to disk.
 
     Attributes
     ----------
-    node_iterator : function
+    node_iterator : Callable[[], Iterator]
         Function to generate nodes from the transformed data
-    node_types : list
+    node_types : list[str]
         Types of nodes
     node_types_to_paths : dict
         Paths to save nodes
@@ -34,15 +33,15 @@ class Storer:
 
     Parameters
     ----------
-    node_iterator : method
-        Method to generate nodes from the transformed data
+    node_iterator : Callable[[], Iterator]
+        Function to generate nodes from the transformed data
     node_types : list
         Types of nodes
     data_directory : Path
         Directory to save data
     """
 
-    def __init__(self, node_iterator: Callable, node_types: list[str], data_directory: Path):
+    def __init__(self, node_iterator: Callable[[], Iterator], node_types: list[str], data_directory: Path):
         self.node_iterator = node_iterator
         self.node_types = node_types
         self.node_types_to_paths = {
@@ -57,8 +56,7 @@ class Storer:
         self.edges_sample_path = Path(data_directory, "edges_sample.tsv")
 
     def save_data(self, data: pd.DataFrame, path: Path) -> None:
-        """
-        Saves data to disk as a compressed TSV file.
+        """Saves data to disk as a compressed TSV file.
 
         Parameters
         ----------
@@ -77,6 +75,11 @@ class Storer:
     def save_node_data(self) -> None:
         """
         Save node data to disk as compressed TSV files.
+
+        Raises
+        ------
+        RuntimeError
+            If no nodes were generated for the graph
         """
         nodes_by_type = defaultdict(list)
         # Get all the nodes
@@ -107,8 +110,7 @@ class Storer:
         sample_path=None,
         write_mode="wt"
     ):
-        """
-        Dump node data to a path as a compressed TSV file.
+        """Dump node data to a path as a compressed TSV file.
 
         Parameters
         ----------
@@ -213,7 +215,7 @@ def norm_id(db_ns, db_id) -> str:
 
     Returns
     -------
-    str :
+    str
         The normalized identifier.
     """
 

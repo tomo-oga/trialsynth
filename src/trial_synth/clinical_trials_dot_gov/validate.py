@@ -64,8 +64,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_nodes_by_type(nodes_by_type: dict, node_type: str) -> list:
-    """
-    Retrieve nodes of a specific type from a node dictionary.
+    """Retrieve nodes of a specific type from a node dictionary.
 
     Parameters
     ----------
@@ -89,8 +88,7 @@ def get_nodes_by_type(nodes_by_type: dict, node_type: str) -> list:
 
     
 def validate_node_data(processor_name:str, nodes: list[dict]) -> None:
-    """
-    Validate the node data before yielding them.
+    """Validate the node data before yielding them.
 
     Parameters
     ----------
@@ -121,8 +119,7 @@ def validate_node_data(processor_name:str, nodes: list[dict]) -> None:
 
 
 def validate_edge_data(processor_name:str, edges: list[dict]) -> None:
-    """
-    Validate the edge data before yielding them.
+    """Validate the edge data before yielding them.
 
     Parameters
     ----------

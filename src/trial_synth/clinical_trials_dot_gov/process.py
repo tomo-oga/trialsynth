@@ -14,36 +14,35 @@ logger = logging.getLogger(__name__)
 
 
 class Processor:
-    """
-    Processes Clinicaltrials.gov data using Config, Fetcher, Storer, and Transformer objects.
+    """Processes Clinicaltrials.gov data using Config, Fetcher, Storer, and Transformer objects.
 
     Attributes
     ----------
-        config : Config
-            User-mutable properties of Clinicaltrials.gov data processing
-        fetcher : Fetcher
-            Fetches Clinicaltrials.gov data from the REST API or a saved file
-        storer : Storer
-            Stores processed data to disk
-        transformer : Transformer
-            Transforms raw data into nodes and edges for a graph database
-        node_iterator : method
-            Method to generate nodes from the transformed data
-        nodes_by_type : defaultdict
-            Nodes grouped by type
-        edges : set
-            Edges between nodes
+    config : Config
+        User-mutable properties of Clinicaltrials.gov data processing
+    fetcher : Fetcher
+        Fetches Clinicaltrials.gov data from the REST API or a saved file
+    storer : Storer
+        Stores processed data to disk
+    transformer : Transformer
+        Transforms raw data into nodes and edges for a graph database
+    node_iterator : method
+        Method to generate nodes from the transformed data
+    nodes_by_type : defaultdict
+        Nodes grouped by type
+    edges : set
+        Edges between nodes
 
     Parameters
     ----------
-        config : Config
-            User-mutable properties of Clinicaltrials.gov data processing
-        fetcher : Fetcher
-            Fetches Clinicaltrials.gov data from the REST API or a saved file
-        storer : Storer
-            Stores processed data to disk
-        transformer : Transformer
-            Transforms raw data into nodes and edges for a graph database
+    config : Config
+        User-mutable properties of Clinicaltrials.gov data processing
+    fetcher : Fetcher
+        Fetches Clinicaltrials.gov data from the REST API or a saved file
+    storer : Storer
+        Stores processed data to disk
+    transformer : Transformer
+        Transforms raw data into nodes and edges for a graph database
     """
 
     def __init__(
@@ -63,13 +62,12 @@ class Processor:
         self.edges = set()
 
     def ensure_api_response_data_saved(self, refresh: bool = False) -> None:
-        """
-        Ensures that the input data exists on disk, either by fetching from the API or loading from a saved file
+        """Ensures that the input data exists on disk, either by fetching from the API or loading from a saved file
 
         Parameters
         ----------
-            refresh : bool
-                Whether to fetch data from the API even if it exists on disk
+        refresh : bool
+            Whether to fetch data from the API even if it exists on disk. Default: False
         """
         logger.debug("Ensuring input data exists on disk")
         if self.config.unprocessed_file_path.is_file() and not refresh:
@@ -111,6 +109,11 @@ class Processor:
     def set_edges(self) -> None:
         """
         Sets edges from the transformed data.
+
+        Raises
+        ------
+        RuntimeError
+            If no relations were generated for the graph
         """
         logger.debug("Setting edges")
         self.edges = list(self.transformer.get_edges())

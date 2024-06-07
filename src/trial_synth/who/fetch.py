@@ -30,8 +30,7 @@ def get_api_data() -> None:
 
 
 def load_saved_xml_data(path: Path) -> etree.Element:
-    """
-    Loads the XML data from a saved file
+    """Loads the XML data from a saved file
 
     Parameters
     ----------
@@ -54,8 +53,7 @@ def load_saved_xml_data(path: Path) -> etree.Element:
 
 
 def load_saved_pickled_data(path: Path) -> pd.DataFrame:
-    """
-    Loads the pickled data from a saved file
+    """Loads the pickled data from a saved file
 
     Parameters
     ----------

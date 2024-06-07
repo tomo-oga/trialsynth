@@ -38,9 +38,9 @@ class Processor:
 
     Parameters
     ----------
-    transformed_data: DataFrame
+    transformed_data : DataFrame
         Transformed WHO data
-    config: Config
+    config : Config
         Configuration for WHO data processing
     """
     def __init__(self, transformed_data: pd.DataFrame, config: Config):
