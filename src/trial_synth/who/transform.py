@@ -6,10 +6,10 @@ from tqdm import tqdm
 
 import bioregistry
 
-from .config import FIELDS
-from .trial_model import WHOTrial
-from .util import PREFIXES, findtext, findlist, transform_mappings
-from .validate import is_valid
+from config import FIELDS
+from trial_model import WHOTrial
+from util import PREFIXES, findtext, findlist, transform_mappings
+from validate import is_valid
 
 
 logger = logging.getLogger(__name__)

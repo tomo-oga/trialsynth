@@ -3,11 +3,11 @@ import logging
 
 from tqdm import tqdm
 
-from .config import Config
-from .fetch import Fetcher, load_saved_data
-from .store import Storer
-from .transform import Transformer
-from .validate import validate_node_data, validate_edge_data
+from config import Config
+from fetch import Fetcher, load_saved_data
+from store import Storer
+from transform import Transformer
+from validate import validate_node_data, validate_edge_data
 
 
 logger = logging.getLogger(__name__)
