@@ -9,11 +9,11 @@ import logging
 import click
 import pandas as pd
 
-from config import Config
-from fetch import load_saved_pickled_data, load_saved_xml_data
-from process import Processor
-from store import store_dataframe_as_flat_file
-from transform import transform_xml_data
+from .config import Config
+from .fetch import load_saved_pickled_data, load_saved_xml_data
+from .process import Processor
+from .store import store_dataframe_as_flat_file
+from .transform import transform_xml_data
 
 
 CONFIG = Config()

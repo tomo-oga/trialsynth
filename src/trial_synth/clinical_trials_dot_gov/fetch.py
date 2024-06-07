@@ -8,8 +8,8 @@ import requests
 from tqdm import trange
 from typing import Optional
 
-from config import FIELDS
-from rest_api_response_models import UnflattenedTrial
+from .config import FIELDS
+from .rest_api_response_models import UnflattenedTrial
 
 
 TRIAL = {field: None for field in FIELDS}

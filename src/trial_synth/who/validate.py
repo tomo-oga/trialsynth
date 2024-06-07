@@ -1,4 +1,4 @@
-from util import PATTERNS
+from .util import PATTERNS
 
 
 def is_valid(pattern: str, trial_id: str) -> bool:

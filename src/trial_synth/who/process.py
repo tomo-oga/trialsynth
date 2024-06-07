@@ -8,8 +8,8 @@ import bioregistry
 import gilda
 import gilda.ner
 
-from config import Config
-from store import store_dataframe_as_flat_file
+from .config import Config
+from .store import store_dataframe_as_flat_file
 
 
 logger = logging.getLogger(__name__)

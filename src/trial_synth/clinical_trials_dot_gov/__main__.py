@@ -2,12 +2,12 @@ import logging
 
 import click
 
-from config import Config, DATA_DIR
-from fetch import Fetcher
-from store import Storer
-from transform import Transformer
-from process import Processor
-from util import ensure_output_directory_exists
+from .config import Config, DATA_DIR
+from .fetch import Fetcher
+from .store import Storer
+from .transform import Transformer
+from .process import Processor
+from .util import ensure_output_directory_exists
 
 
 logger = logging.getLogger(__name__)
