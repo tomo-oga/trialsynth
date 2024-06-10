@@ -1,5 +1,3 @@
-"""Transforms WHO data to dataframe"""
-
 import logging
 
 from lxml import etree
@@ -8,16 +6,33 @@ from tqdm import tqdm
 
 import bioregistry
 
-from .config import FIELDS
-from .trial_model import WHOTrial
-from .util import PREFIXES, findtext, findlist, transform_mappings
-from .validate import is_valid
+from config import FIELDS
+from trial_model import WHOTrial
+from util import PREFIXES, findtext, findlist, transform_mappings
+from validate import is_valid
 
 
 logger = logging.getLogger(__name__)
 
 
 def transform_xml_data(tree: etree.Element) -> pd.DataFrame:
+    """Transforms WHO data from XML into a DataFrame
+
+    Parameters
+    ----------
+    tree : etree.Element
+        Parsed XML data
+
+    Returns
+    -------
+    DataFrame
+        Transformed WHO data
+
+    Raises
+    ------
+    ValueError
+        If the trial ID is not recognized
+    """
     logger.info("Transforming WHO data from XML into dataframe")
     rows = []
     for trial in tqdm(tree, unit_scale=True, unit="trial"):
