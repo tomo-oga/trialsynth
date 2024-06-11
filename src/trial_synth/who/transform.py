@@ -87,7 +87,7 @@ def transform_xml_data(tree: etree.Element) -> pd.DataFrame:
     ).sort_values("curie")
 
     df["mappings"] = df.mappings.map(transform_mappings)
-    df["name"] = df["name"].strip()
+    df["name"] = df["name"].str.strip()
     for key in ["interventions", "conditions"]:
         df[key] = df[key].map(lambda l: [x.strip() for x in l], na_action="ignore")
     return df

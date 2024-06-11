@@ -78,10 +78,12 @@ def findtext(trial: etree.Element, k: str) -> str:
     str
         The text of the child element
     """
-    if v := trial.find(k):
-        if v.text:
-            return v.text.replace("<br>", "\n").strip()
+    v = trial.find(k)
+    if (v is not None) and (v.text is not None):
+        return trial.find(k).text.replace("<br>", "\n").strip()
     return ""
+
+
 
 
 def findlist(el: etree.Element, k: str) -> list:
