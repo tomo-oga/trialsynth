@@ -108,7 +108,7 @@ class Processor:
         config = [
             (
                 "conditions",
-                ["doid", "mondo", "go"],
+                ["doid", "mondo", "go", "MESH"],
                 self.config.condition_relation,
                 self.config.condition_curie,
                 gilda.annotate,

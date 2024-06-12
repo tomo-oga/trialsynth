@@ -48,7 +48,7 @@ def transform_xml_data(tree: etree.Element) -> pd.DataFrame:
             trial_id = trial_id.removeprefix("EUCTR")
             trial_id = "-".join(trial_id.split("-")[:3])
 
-        trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS")
+        trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-")
 
         if not is_valid(p, trial_id):
             tqdm.write(f"Failed validation: {trial_id}")
