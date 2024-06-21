@@ -7,7 +7,6 @@ from typing import Optional
 
 import bioregistry
 
-
 PREFIXES = {
     "ISRCTN": "isrctn",
     "ACTRN": "anzctr",
@@ -26,6 +25,7 @@ PREFIXES = {
     "EU Clinical Trials Register": "euclinicaltrials",  ###
     "JPRN-jRCT": "jrct",
     "JPRN-UMIN": "uminctr",  # University hospital Medical Information Network
+    "JPRN-C": "uminctr", # new ID format starting with C
     "Clinical Trials Information System": "ctis",
     "CTIS": "ctis",  # site broken
     "LBCTR": "lctr",  # Lebanon Clinical Trials Registry
@@ -53,7 +53,7 @@ def get_patterns() -> dict:
             continue
         pattern = bioregistry.get_pattern(v)
         if not pattern:
-            tqdm.write(f"missing pattern for {v}")
+            tqdm.write(f"missing pattern for {v} in bioregistry")
             continue
         rv[k] = re.compile(pattern)
     return rv
@@ -84,30 +84,44 @@ def findtext(trial: etree.Element, k: str) -> str:
     return ""
 
 
-
-
-def findlist(el: etree.Element, k: str) -> list:
+def makelist(s: Optional[str], delimeter: str = '.') -> list:
     """Find a list of values from an element joined by semicolons
 
     Parameters
     ----------
-    el : etree.Element
-        The element to search
-
-    k : str
-        The key of the child element
+    s : Optional[str]
+        The string to split
+    delimeter : str
+        The delimeter to split by
 
     Returns
     -------
     list
         The list of values
     """
-    v = findtext(el, k)
-    if v:
-        return sorted(x for x in {x.strip() for x in v.split(";")} if x)
+
+    if s and not pd.isna(s):
+        s = s.removeprefix('"').removesuffix('"')
+        return sorted(x for x in {x.strip() for x in s.split(delimeter)} if x)
     return []
 
+def make_str(s: str):
+    """Return a stripped string if it is not empty
 
+    Parameters
+    ----------
+    s : str
+        The string to check
+
+    Returns
+    -------
+    str
+        The string if it is not empty
+    """
+    if s and not pd.isna(s):
+        return s.strip()
+
+    return ''
 def matches_pattern(s: str) -> Optional[str]:
     """Matches a string to a pattern and returns the prefix if it matches.
 

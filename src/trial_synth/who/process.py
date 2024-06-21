@@ -87,7 +87,7 @@ class Processor:
         n_mapped = len(self.counter[True])
         total = n_unmapped + n_mapped
         logging.info(
-            f"Could not map {n_unmapped:,}/{total:,} ({n_unmapped/total:.1%}). Some example unmapped:"
+            f"Could not map {n_unmapped:,}/{total:,} ({n_unmapped/total:.1%}). Some example unmapped: {self.counter[False][:5]}"
         )
 
         self.mappings_df = pd.DataFrame(
