@@ -28,13 +28,20 @@ def transform_csv_data(path: Path) -> pd.DataFrame:
     pd.DataFrame
         Transformed WHO data
     """
-    logger.info("Reading CSV WHO data into DataFrame")
-    df = pd.read_csv(path)
+
+    # manual progress bar as pandas does not support tqdm natively
+    n_lines = sum(1 for line in open(path))
+    with tqdm(total=n_lines, desc="Reading CSV WHO data", unit='lines') as pbar:
+        chunks = []
+        for chunk in pd.read_csv(path, chunksize=1000):
+            chunks.append(chunk)
+            pbar.update(len(chunk))
+    df = pd.concat(chunks, ignore_index=True)
     df.columns = list(pd.read_csv(CSV_COLUMN_PATH))
     logger.info("Transforming data...")
     rows = []
     for _, trial in tqdm(df.iterrows(), unit_scale=True, unit="trial"):
-        trial_id = trial['TrialID']
+        trial_id = trial['TrialID'].strip()
 
         for p, prefix in PREFIXES.items():
             if trial_id.startswith(p) or trial_id.startswith(p.lower()):
@@ -47,7 +54,13 @@ def transform_csv_data(path: Path) -> pd.DataFrame:
             trial_id = trial_id.removeprefix("EUCTR")
             trial_id = "-".join(trial_id.split("-")[:3])
 
+        # handling incosistensies with ChiCTR trial IDs
+        if trial_id.lower().startswith("chictr-"):
+            trial_id = "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
+
         trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-")
+
+
 
         if not is_valid(p, trial_id):
             tqdm.write(f"Failed validation: {trial_id}")
