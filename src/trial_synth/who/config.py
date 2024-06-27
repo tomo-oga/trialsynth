@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config_eviron import get_config
+from .config_environ import get_config
 
 
 HERE = Path(__file__).parent.resolve()
