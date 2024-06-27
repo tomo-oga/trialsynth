@@ -8,3 +8,4 @@ addict
 pydantic
 lxml
 bioregistry
+numpy<2
