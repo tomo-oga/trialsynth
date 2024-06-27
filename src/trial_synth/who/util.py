@@ -1,11 +1,15 @@
 import re
+import logging
 
 from lxml import etree
 import pandas as pd
 from tqdm import tqdm
-from typing import Optional, Union, Tuple
-
+from typing import Optional
+from pathlib import Path
+from .config import DATA_DIR
 import bioregistry
+
+logger = logging.getLogger(__name__)
 
 PREFIXES = {
     "ISRCTN": "isrctn",
@@ -25,7 +29,7 @@ PREFIXES = {
     "EU Clinical Trials Register": "euclinicaltrials",  ###
     "JPRN-jRCT": "jrct",
     "JPRN-UMIN": "uminctr",  # University hospital Medical Information Network
-    "JPRN-C": "uminctr", # new ID format starting with C
+    "JPRN-C": "uminctr",  # new ID format starting with C
     "Clinical Trials Information System": "ctis",
     "CTIS": "ctis",  # site broken
     "LBCTR": "lctr",  # Lebanon Clinical Trials Registry
@@ -61,8 +65,31 @@ def get_patterns() -> dict:
 
 PATTERNS = get_patterns()
 
-def makelist(s: str, delimeter: str) -> list:
-    """Find a list of values from an element joined by a delimeter
+
+def findtext(trial: etree.Element, k: str) -> str:
+    """Find the text of a child element of a trial
+
+    Parameters
+    ----------
+    trial : etree.Element
+        The trial element
+
+    k : str
+        The key of the child element
+
+    Returns
+    -------
+    str
+        The text of the child element
+    """
+    v = trial.find(k)
+    if (v is not None) and (v.text is not None):
+        return trial.find(k).text.replace("<br>", "\n").strip()
+    return ""
+
+
+def makelist(s: Optional[str], delimeter: str = '.') -> list:
+    """Find a list of values from an element joined by semicolons
 
     Parameters
     ----------
@@ -76,10 +103,12 @@ def makelist(s: str, delimeter: str) -> list:
     list
         The list of values
     """
-    s = s.removeprefix('"').removesuffix('"')
-    if len(s) != 0:
+
+    if s and not pd.isna(s):
+        s = s.removeprefix('"').removesuffix('"')
         return sorted(x for x in {x.strip() for x in s.split(delimeter)} if x)
     return []
+
 
 def make_str(s: str):
     """Return a stripped string if it is not empty
@@ -98,6 +127,8 @@ def make_str(s: str):
         return s.strip()
 
     return ''
+
+
 def matches_pattern(s: str) -> Optional[str]:
     """Matches a string to a pattern and returns the prefix if it matches.
 
@@ -144,3 +175,19 @@ def transform_mappings(s: str) -> Optional[list[str]]:
     if not curies:
         return None
     return curies
+
+
+def ensure_output_directory_exists(path: Path = DATA_DIR) -> None:
+    """Ensures that the output directory exists
+
+    Parameters
+    ----------
+    path : Path
+        Path to the output directory
+    """
+    try:
+        logger.debug(f"Ensuring directory exists: {path}")
+        path.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        logger.exception(f"An error occurred trying to create {path}")
+        raise
