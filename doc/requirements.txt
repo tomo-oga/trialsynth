@@ -1,0 +1,10 @@
+gilda
+pandas
+tqdm
+indra 
+requests
+click
+addict
+pydantic
+lxml
+bioregistry
