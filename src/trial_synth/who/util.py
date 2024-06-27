@@ -3,8 +3,7 @@ import re
 from lxml import etree
 import pandas as pd
 from tqdm import tqdm
-from typing import Optional
-
+from typing import Optional, Union, Tuple
 
 import bioregistry
 
@@ -62,31 +61,8 @@ def get_patterns() -> dict:
 
 PATTERNS = get_patterns()
 
-
-def findtext(trial: etree.Element, k: str) -> str:
-    """Find the text of a child element of a trial
-
-    Parameters
-    ----------
-    trial : etree.Element
-        The trial element
-
-    k : str
-        The key of the child element
-
-    Returns
-    -------
-    str
-        The text of the child element
-    """
-    v = trial.find(k)
-    if (v is not None) and (v.text is not None):
-        return trial.find(k).text.replace("<br>", "\n").strip()
-    return ""
-
-
-def makelist(s: Optional[str], delimeter: str = '.') -> list:
-    """Find a list of values from an element joined by semicolons
+def makelist(s: str, delimeter: str) -> list:
+    """Find a list of values from an element joined by a delimeter
 
     Parameters
     ----------
@@ -100,9 +76,8 @@ def makelist(s: Optional[str], delimeter: str = '.') -> list:
     list
         The list of values
     """
-
-    if s and not pd.isna(s):
-        s = s.removeprefix('"').removesuffix('"')
+    s = s.removeprefix('"').removesuffix('"')
+    if len(s) != 0:
         return sorted(x for x in {x.strip() for x in s.split(delimeter)} if x)
     return []
 
