@@ -5,10 +5,6 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Optional
 
-from .fetch import load_saved_pickled_data
-from .transform import transform_csv_data
-from .config import Config
-
 
 import bioregistry
 
@@ -47,27 +43,6 @@ PREFIXES = {
     "PER": "repec",  # Clinical Trials Peruvian Registry
 }
 
-
-def ensure_df(config: Config = Config()) -> pd.DataFrame:
-    """
-    Ensure that the DataFrame is loaded from a saved pickle file or from the CSV file
-
-    Parameters
-    ----------
-    config: Config
-        Configuration for WHO data processing. Default: Config()
-
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame of the WHO data
-    """
-    if config.parsed_pickle_path.is_file():
-        return load_saved_pickled_data(config.parsed_pickle_path)
-
-    df = transform_csv_data(config.csv_path)
-    df.to_pickle(config.parsed_pickle_path)
-    return df
 
 def get_patterns() -> dict:
     """

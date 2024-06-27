@@ -1,19 +1,40 @@
 import logging
 
-from lxml import etree
+import csv
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 
 import bioregistry
 
-from .config import FIELDS, CSV_COLUMN_PATH
+from .config import FIELDS, CSV_COLUMN_PATH, Config
 from .trial_model import WHOTrial
 from .util import PREFIXES, makelist, transform_mappings, make_str
 from .validate import is_valid
+from .fetch import load_saved_pickled_data
 
 logger = logging.getLogger(__name__)
 
+def ensure_df(config: Config = Config()) -> pd.DataFrame:
+    """
+    Ensure that the DataFrame is loaded from a saved pickle file or from the CSV file
+
+    Parameters
+    ----------
+    config: Config
+        Configuration for WHO data processing. Default: Config()
+
+    Returns
+    -------
+    pd.DataFrame
+        The DataFrame of the WHO data
+    """
+    if config.parsed_pickle_path.is_file():
+        return load_saved_pickled_data(config.parsed_pickle_path)
+
+    df = transform_csv_data(config.csv_path)
+    df.to_pickle(config.parsed_pickle_path)
+    return df
 
 def transform_csv_data(path: Path) -> pd.DataFrame:
     """Transforms WHO data from CSV into a DataFrame
@@ -28,7 +49,12 @@ def transform_csv_data(path: Path) -> pd.DataFrame:
     pd.DataFrame
         Transformed WHO data
     """
+    with open(path, mode='r') as file:
+        lines = [line for line in file]
+        current_line = 1
 
+        for row in tqdm(csv.reader(lines), desc="Reading CSV WHO data", total=len(lines), unit='lines'):
+            current_line += 1
     # manual progress bar as pandas does not support tqdm natively
     n_lines = sum(1 for line in open(path))
     with tqdm(total=n_lines, desc="Reading CSV WHO data", unit='lines') as pbar:
