@@ -129,10 +129,8 @@ class Processor:
         logger.info("warming up grounder")
         gilda.annotate("stuff")
         logger.info("done warming up grounder")
-
-        for column, namespaces, rtype, rcurie, annotate_fn, skip in tqdm(
-            config, leave=False, desc="Processing columns"
-        ):
+        logger.info("Processing columns")
+        for column, namespaces, rtype, rcurie, annotate_fn, skip in config:
             rows = []
             for curie, cells in tqdm(
                 self.df[["curie", column]].values,
