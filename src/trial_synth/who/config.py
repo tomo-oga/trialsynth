@@ -10,7 +10,6 @@ CONDITION_CURIE = os.environ.get("CONDITION_CURIE", "debio:0000036")
 
 HERE = Path(__file__).parent.resolve()
 CSV_PATH = HERE.joinpath("ICTRP-Results.csv")
-CSV_COLUMN_PATH = HERE.joinpath("ictrp_headers.csv")
 XML_PATH = HERE.joinpath("ICTRP-Results.xml.gz")
 PARSED_PICKLE_PATH = HERE.joinpath("processed.pkl.gz")
 SAMPLE_PATH = HERE.joinpath("sample.tsv")
@@ -48,7 +47,6 @@ class Config:
     current_path = HERE
     xml_path = XML_PATH
     csv_path = CSV_PATH
-    csv_column_path = CSV_COLUMN_PATH
     parsed_pickle_path = PARSED_PICKLE_PATH
     sample_path = SAMPLE_PATH
     nodes_path = NODES_PATH
