@@ -14,7 +14,7 @@ from .fetch import load_saved_pickled_data
 from .process import Processor
 from .store import store_dataframe_as_flat_file
 from .transform import transform_csv_data
-
+from .util import ensure_output_directory_exists
 
 CONFIG = Config()
 logger = logging.getLogger(__name__)
@@ -31,6 +31,8 @@ def ensure_df() -> pd.DataFrame:
 
 @click.command()
 def main():
+    click.secho("Processing WHO ICTRP data", fg="green", bold=True)
+    ensure_output_directory_exists()
     df = ensure_df()
     store_dataframe_as_flat_file(df, CONFIG.sample_path, "\t", False)
     processor = Processor(df, CONFIG)

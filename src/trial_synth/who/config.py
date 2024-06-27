@@ -9,14 +9,18 @@ CONDITION_RELATION = os.environ.get("CONDITION_RELATION", "has_condition")
 CONDITION_CURIE = os.environ.get("CONDITION_CURIE", "debio:0000036")
 
 HERE = Path(__file__).parent.resolve()
+HOME_DIR = os.environ.get("HOME_DIRECTORY", Path.home())
+PARENT_DIR_STR = os.environ.get("BASE_DIRECTORY", ".data")
+DATA_DIR_STR = os.environ.get("DATA_DIRECTORY", "who-ictrp")
+DATA_DIR = Path(HOME_DIR, PARENT_DIR_STR, DATA_DIR_STR)
+
 CSV_PATH = HERE.joinpath("ICTRP-Results.csv")
 CSV_COLUMN_PATH = HERE.joinpath("ictrp_headers.csv")
-XML_PATH = HERE.joinpath("ICTRP-Results.xml.gz")
-PARSED_PICKLE_PATH = HERE.joinpath("processed.pkl.gz")
-SAMPLE_PATH = HERE.joinpath("sample.tsv")
-NODES_PATH = HERE.joinpath("nodes.tsv")
-EDGES_PATH = HERE.joinpath("edges.tsv.gz")
-MAPPINGS_PATH = HERE.joinpath("mappings.tsv")
+PARSED_PICKLE_PATH = DATA_DIR.joinpath("processed.pkl.gz")
+SAMPLE_PATH = DATA_DIR.joinpath("sample.tsv")
+NODES_PATH = DATA_DIR.joinpath("nodes.tsv")
+EDGES_PATH = DATA_DIR.joinpath("edges.tsv.gz")
+MAPPINGS_PATH = DATA_DIR.joinpath("mappings.tsv")
 
 SOURCE_KEY = "who"
 
@@ -46,7 +50,7 @@ class Config:
     condition_curie = CONDITION_CURIE
 
     current_path = HERE
-    xml_path = XML_PATH
+    data_dir_path = DATA_DIR
     csv_path = CSV_PATH
     csv_column_path = CSV_COLUMN_PATH
     parsed_pickle_path = PARSED_PICKLE_PATH
