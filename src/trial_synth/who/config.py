@@ -1,23 +1,17 @@
 from dataclasses import dataclass
-import os
 from pathlib import Path
 
+from .config_eviron import get_config
 
-INTERVENTION_RELATION = os.environ.get("INTERVENTION_RELATION", "has_intervention")
-INTERVENTION_CURIE = os.environ.get("INTERVENTION_CURIE", "debio:0000035")
-CONDITION_RELATION = os.environ.get("CONDITION_RELATION", "has_condition")
-CONDITION_CURIE = os.environ.get("CONDITION_CURIE", "debio:0000036")
 
 HERE = Path(__file__).parent.resolve()
-HOME_DIR = os.environ.get("HOME_DIRECTORY", Path.home())
-PARENT_DIR_STR = os.environ.get("BASE_DIRECTORY", ".data")
-DATA_DIR_STR = os.environ.get("DATA_DIRECTORY", "who-ictrp")
-DATA_DIR = Path(HOME_DIR, PARENT_DIR_STR, DATA_DIR_STR)
+DATA_DIR = HERE.joinpath("data")
+SAMPLE_DIR = DATA_DIR.joinpath("samples")
+RESOURCE_DIR = HERE.joinpath("resources")
 
-CSV_PATH = HERE.joinpath("ICTRP-Results.csv")
-CSV_COLUMN_PATH = HERE.joinpath("ictrp_headers.csv")
+CSV_PATH = RESOURCE_DIR.joinpath("ICTRP-Results.csv")
 PARSED_PICKLE_PATH = DATA_DIR.joinpath("processed.pkl.gz")
-SAMPLE_PATH = DATA_DIR.joinpath("sample.tsv")
+SAMPLE_PATH = SAMPLE_DIR.joinpath("sample.tsv")
 NODES_PATH = DATA_DIR.joinpath("nodes.tsv")
 EDGES_PATH = DATA_DIR.joinpath("edges.tsv.gz")
 MAPPINGS_PATH = DATA_DIR.joinpath("mappings.tsv")
@@ -44,16 +38,16 @@ class Config:
     User-mutable properties of WHO data processing
     """
 
-    intervention_relation = INTERVENTION_RELATION
-    intervention_curie = INTERVENTION_CURIE
-    condition_relation = CONDITION_RELATION
-    condition_curie = CONDITION_CURIE
+    intervention_relation = get_config("INTERVENTION_RELATION")
+    intervention_curie = get_config("INTERVENTION_CURIE")
+    condition_relation = get_config("CONDITION_RELATION")
+    condition_curie = get_config("CONDITION_CURIE")
 
     current_path = HERE
     data_dir_path = DATA_DIR
     csv_path = CSV_PATH
-    csv_column_path = CSV_COLUMN_PATH
     parsed_pickle_path = PARSED_PICKLE_PATH
+    sample_dir_path = SAMPLE_DIR
     sample_path = SAMPLE_PATH
     nodes_path = NODES_PATH
     edges_path = EDGES_PATH

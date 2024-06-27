@@ -7,7 +7,7 @@ from pathlib import Path
 
 import bioregistry
 
-from .config import FIELDS, CSV_COLUMN_PATH, Config
+from .config import FIELDS, Config
 from .trial_model import WHOTrial
 from .util import PREFIXES, makelist, transform_mappings, make_str
 from .validate import is_valid
