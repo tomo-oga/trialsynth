@@ -53,9 +53,7 @@ class Processor:
         self.full_df = None
 
     def process_nodes(self) -> None:
-        """
-        Processes nodes from the transformed data and stores them in the nodes_df DataFrame
-        """
+        """Processes nodes from the transformed data and stores them in the nodes_df DataFrame"""
         logger.info("Processing nodes")
 
         nodes_df = self.df[["curie", "name", "type"]].copy().sort_values("curie")
@@ -65,9 +63,7 @@ class Processor:
         self.nodes_df = nodes_df[~clinicaltrialsgov_idx]  # don't re-add these
 
     def process_mappings(self) -> None:
-        """
-        Processes mappings from the transformed data and stores them in the mappings_df DataFrame
-        """
+        """Processes mappings from the transformed data and stores them in the mappings_df DataFrame"""
         logger.info("Processing mappings")
 
         curie_to_name = dict(self.df[["curie", "name"]].values)
@@ -190,18 +186,14 @@ class Processor:
             store_dataframe_as_flat_file(matches_df.head(100), output_sample_path, "\t", False)
 
     def process_full_dataframe(self) -> None:
-        """
-        Processes the full DataFrame by concatenating the mappings DataFrame and the DataFrames of named entities recognized in the columns.
-        """
+        """Processes the full DataFrame by concatenating the mappings DataFrame and the DataFrames of named entities recognized in the columns."""
         logger.info("Processing full dataframe")
         self.full_df = pd.concat([self.mappings_df, *self.matches_dfs.values()]).sort_values(":START_ID")
         self.full_df = self.full_df[[":START_ID", ":END_ID", ":TYPE", "curie", self.config.source_key]]
         self.full_df = self.full_df.drop_duplicates()
 
     def process_who_data(self) -> None:
-        """
-        Processes WHO data by calling the process_nodes, process_mappings, process_matches, and process_full_dataframe methods.
-        """
+        """Processes WHO data by calling the process_nodes, process_mappings, process_matches, and process_full_dataframe methods."""
         logger.info("Processing WHO data")
         self.process_nodes()
         store_dataframe_as_flat_file(self.nodes_df, self.config.nodes_path, "\t", False)
