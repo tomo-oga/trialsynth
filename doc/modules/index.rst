@@ -37,7 +37,7 @@ ClinicalTrials.gov
     :show-inheritance:
 
 WHO-ICTRP
-------------------
+---------
 
 .. automodule:: trial_synth.who.config
     :members:
