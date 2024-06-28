@@ -34,6 +34,7 @@ def main():
     click.secho("Processing WHO ICTRP data", fg="green", bold=True)
     ensure_output_directory_exists(CONFIG.data_dir_path)
     ensure_output_directory_exists(CONFIG.sample_dir_path)
+    ensure_output_directory_exists(CONFIG.ner_dir_path)
     df = ensure_df()
     store_dataframe_as_flat_file(df, CONFIG.sample_path, "\t", False)
     processor = Processor(df, CONFIG)

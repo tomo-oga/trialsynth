@@ -178,8 +178,8 @@ class Processor:
                 NER_COLUMNS
             )
 
-            output_path = self.config.current_path.joinpath(f"ner_{column}.tsv.gz")
-            output_sample_path = self.config.current_path.joinpath(f"ner_{column}_sample.tsv")
+            output_path = self.config.ner_dir_path.joinpath(f"ner_{column}.tsv.gz")
+            output_sample_path = self.config.sample_dir_path.joinpath(f"ner_{column}_sample.tsv")
             store_dataframe_as_flat_file(matches_df, output_path, "\t", False)
             store_dataframe_as_flat_file(matches_df.head(100), output_sample_path, "\t", False)
 
@@ -196,7 +196,7 @@ class Processor:
         self.process_nodes()
         store_dataframe_as_flat_file(self.nodes_df, self.config.nodes_path, "\t", False)
         self.process_mappings()
-        store_dataframe_as_flat_file(self.mappings_df, self.config.nodes_path, "\t", False)
+        store_dataframe_as_flat_file(self.mappings_df, self.config.mappings_path, "\t", False)
         self.process_matches()
         self.process_full_dataframe()
         store_dataframe_as_flat_file(self.full_df, self.config.edges_path, "\t", False)
