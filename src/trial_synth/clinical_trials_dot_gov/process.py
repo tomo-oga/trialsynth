@@ -77,24 +77,18 @@ class Processor:
             self.storer.save_data(self.fetcher.raw_data, self.config.unprocessed_file_path)
 
     def clean_and_transform_data(self) -> None:
-        """
-        Cleans and transforms the raw data into nodes and edges.
-        """
+        """Cleans and transforms the raw data into nodes and edges."""
         logger.debug("Cleaning and transforming data")
         self.transformer.df = self.fetcher.raw_data
         self.transformer.clean_data_values()
 
     def set_nodes_and_edges(self) -> None:
-        """
-        Sets nodes and edges from the transformed data.
-        """
+        """Sets nodes and edges from the transformed data."""
         self.set_nodes_by_type()
         self.set_edges()
 
     def set_nodes_by_type(self) -> None:
-        """
-        Sets nodes grouped by type using the node iterator.
-        """
+        """Sets nodes grouped by type using the node iterator."""
         logger.debug("Setting nodes by type")
         nodes = tqdm(
             self.node_iterator(),
@@ -107,8 +101,7 @@ class Processor:
             self.nodes_by_type[node["labels"][0]].append(node)
 
     def set_edges(self) -> None:
-        """
-        Sets edges from the transformed data.
+        """Sets edges from the transformed data.
 
         Raises
         ------
@@ -121,18 +114,14 @@ class Processor:
             raise RuntimeError(f"No relations were generated for {self.name}")
 
     def validate_data(self) -> None:
-        """
-        Validates the graph data for consistency.
-        """
+        """Validates the graph data for consistency."""
         logger.debug("Validating graph data")
         for nodes in self.nodes_by_type.values():
             validate_node_data(self.config.name, nodes)
         validate_edge_data(self.config.name, self.edges)
 
     def save_graph_data(self) -> None:
-        """
-        Saves the output data to disk using the storer.
-        """
+        """Saves the output data to disk using the storer."""
         logger.debug("Saving output data")
         self.storer.save_node_data()
         self.storer.save_edge_data(self.edges)

@@ -76,7 +76,7 @@ else:
     _check_config_dict()
 
 
-class WhoConfigError(Exception):
+class TrialSynthConfigError(Exception):
     pass
 
 
@@ -110,10 +110,10 @@ def get_config(key, failure_ok=False):
         # We interpret an empty value in the config file as a failure
         if val is None and not failure_ok:
             msg = 'Key %s is set to an empty value in config file.' % key
-            raise WhoConfigError(msg)
+            raise TrialSynthConfigError(msg)
         else:
             return val
     elif not failure_ok:
-        raise WhoConfigError(err_msg)
+        raise TrialSynthConfigError(err_msg)
     else:
         return None
