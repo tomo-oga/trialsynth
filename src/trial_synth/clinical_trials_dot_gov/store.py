@@ -41,19 +41,19 @@ class Storer:
         Directory to save data
     """
 
-    def __init__(self, node_iterator: Callable[[], Iterator], node_types: list[str], data_directory: Path):
+    def __init__(self, node_iterator: Callable[[], Iterator], node_types: list[str], data_directory: Path, sample_directory: Path):
         self.node_iterator = node_iterator
         self.node_types = node_types
         self.node_types_to_paths = {
             node_type: (
                 Path(data_directory, f"nodes_{node_type}.tsv.gz"),
                 Path(data_directory, f"nodes_{node_type}.pkl"),
-                Path(data_directory, f"nodes_{node_type}_sample.tsv")
+                Path(sample_directory, f"nodes_{node_type}_sample.tsv")
             )
             for node_type in node_types
         }
         self.edges_path = Path(data_directory, "edges.tsv.gz")
-        self.edges_sample_path = Path(data_directory, "edges_sample.tsv")
+        self.edges_sample_path = Path(sample_directory, "edges_sample.tsv")
 
     def save_data(self, data: pd.DataFrame, path: Path) -> None:
         """Saves data to disk as a compressed TSV file.
@@ -230,4 +230,3 @@ def norm_id(db_ns, db_id) -> str:
         if ns_embedded:
             identifiers_id = identifiers_id[len(identifiers_ns) + 1 :]
     return f"{identifiers_ns}:{identifiers_id}"
-

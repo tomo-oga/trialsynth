@@ -8,6 +8,7 @@ from .config_environ import get_config
 
 HERE = Path(__file__).parent.resolve()
 DATA_DIR = HERE.joinpath("data")
+SAMPLE_DIR = DATA_DIR.joinpath("sample")
 
 FIELDS = [
     "NCTId",
