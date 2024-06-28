@@ -1,16 +1,15 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config_environ import get_config
+from ..config_environ import get_config
 
 
 HERE = Path(__file__).parent.resolve()
 DATA_DIR = HERE.joinpath("data")
 SAMPLE_DIR = DATA_DIR.joinpath("samples")
 NER_DIR = DATA_DIR.joinpath("ner")
-RESOURCE_DIR = HERE.joinpath("resources")
 
-CSV_PATH = RESOURCE_DIR.joinpath("ICTRP-Results.csv")
+CSV_PATH = DATA_DIR.joinpath("ICTRP-Results.csv")
 PARSED_PICKLE_PATH = DATA_DIR.joinpath("processed.pkl.gz")
 SAMPLE_PATH = SAMPLE_DIR.joinpath("sample.tsv")
 NODES_PATH = DATA_DIR.joinpath("nodes.tsv.gz")

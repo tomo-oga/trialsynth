@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
-from .config_environ import get_config
+from ..config_environ import get_config
 
 HERE = Path(__file__).parent.resolve()
 DATA_DIR = HERE.joinpath("data")
