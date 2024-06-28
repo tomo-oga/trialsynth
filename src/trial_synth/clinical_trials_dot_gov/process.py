@@ -136,4 +136,3 @@ class Processor:
         logger.debug("Saving output data")
         self.storer.save_node_data()
         self.storer.save_edge_data(self.edges)
-
