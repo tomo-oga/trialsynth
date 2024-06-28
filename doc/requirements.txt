@@ -1,11 +1,1 @@
-gilda
-pandas
-tqdm
-indra 
-requests
-click
-addict
-pydantic
-lxml
-bioregistry
-numpy<2
+sphinx-rtd-theme
