@@ -15,7 +15,7 @@ PARSED_PICKLE_PATH = DATA_DIR.joinpath("processed.pkl.gz")
 SAMPLE_PATH = SAMPLE_DIR.joinpath("sample.tsv")
 NODES_PATH = DATA_DIR.joinpath("nodes.tsv.gz")
 EDGES_PATH = DATA_DIR.joinpath("edges.tsv.gz")
-MAPPINGS_PATH = DATA_DIR.joinpath("mappings.tsv")
+MAPPINGS_PATH = DATA_DIR.joinpath("mappings.tsv.gz")
 
 SOURCE_KEY = "who"
 
