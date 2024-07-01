@@ -30,36 +30,36 @@ def create_config_dict(registry):
         except Exception:
             logger.warning('Could not copy default config file.')
 
-        try:
-            config_dict = {}
-            parser = RawConfigParser()
-            parser.optionxform = lambda x: x
-            parser.read(config_path)
-            sections = parser.sections()
+    try:
+        config_dict = {}
+        parser = RawConfigParser()
+        parser.optionxform = lambda x: x
+        parser.read(config_path)
+        sections = parser.sections()
 
-            options = parser.options('trialsynth')
+        options = parser.options('trialsynth')
+        for option in options:
+            config_dict[option] = str(parser.get('trialsynth', option))
+
+        if registry in sections:
+            options = parser.options(registry)
             for option in options:
-                config_dict[option] = str(parser.get('trialsynth', option))
+                if option in config_dict:
+                    logger.info("Overwriting package level configuration with registry level for option: " + option)
+                config_dict[option] = str(parser.get(registry, option))
+        else:
+            raise ValueError(f"Registry [{registry}] not found in configuration file.")
 
-            if registry in sections:
-                options = parser.options(registry)
-                for option in options:
-                    if option in config_dict:
-                        logger.info("Overwriting package level configuration with registry level for option: " + option)
-                    config_dict[option] = str(parser.get(registry, option))
-            else:
-                raise ValueError(f"Registry [{registry}] not found in configuration file.")
+    except Exception as e:
+        logger.warning("Could not load configuration file due to exception. "
+                       "Only environment variable equivalents will be used.")
+        return None
 
-        except Exception as e:
-            logger.warning("Could not load configuration file due to exception. "
-                           "Only environment variable equivalents will be used.")
-            return None
-
-        for key in config_dict.keys():
-            if config_dict == '':
-                config_dict[key] = None
-            elif isinstance(config_dict[key], str):
-                config_dict[key] = os.path.expanduser(config_dict[key])
+    for key in config_dict.keys():
+        if config_dict == '':
+            config_dict[key] = None
+        elif isinstance(config_dict[key], str):
+            config_dict[key] = os.path.expanduser(config_dict[key])
         return config_dict
 
 def get_config(key: str, config_dict: dict, failure_ok: bool=False):
