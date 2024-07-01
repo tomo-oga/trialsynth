@@ -105,16 +105,16 @@ class Processor:
             (
                 "conditions",
                 ["doid", "mondo", "go", "MESH"],
-                self.config.condition_relation,
-                self.config.condition_curie,
+                "has_condition",
+                "debio:0000036",
                 gilda.annotate,
                 {"doid:4"},
             ),
             (
                 "interventions",
                 None,
-                self.config.intervention_relation,
-                self.config.intervention_curie,
+                "has_intervention",
+                "debio:0000036",
                 gilda.ner.annotate,
                 set()
             ),

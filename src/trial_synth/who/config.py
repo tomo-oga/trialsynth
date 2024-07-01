@@ -1,20 +1,13 @@
 from dataclasses import dataclass
 from pathlib import Path
+from ..config_environ import create_config_dict, get_config
 
-from ..config_environ import get_config
-
+CONFIG_DICT = create_config_dict("who")
 
 HERE = Path(__file__).parent.resolve()
 DATA_DIR = HERE.joinpath("data")
 SAMPLE_DIR = DATA_DIR.joinpath("samples")
 NER_DIR = DATA_DIR.joinpath("ner")
-
-CSV_PATH = DATA_DIR.joinpath("ICTRP-Results.csv")
-PARSED_PICKLE_PATH = DATA_DIR.joinpath("processed.pkl.gz")
-SAMPLE_PATH = SAMPLE_DIR.joinpath("sample.tsv")
-NODES_PATH = DATA_DIR.joinpath("nodes.tsv.gz")
-EDGES_PATH = DATA_DIR.joinpath("edges.tsv.gz")
-MAPPINGS_PATH = DATA_DIR.joinpath("mappings.tsv.gz")
 
 SOURCE_KEY = "who"
 
@@ -38,21 +31,16 @@ class Config:
     User-mutable properties of WHO data processing
     """
 
-    intervention_relation = get_config("INTERVENTION_RELATION")
-    intervention_curie = get_config("INTERVENTION_CURIE")
-    condition_relation = get_config("CONDITION_RELATION")
-    condition_curie = get_config("CONDITION_CURIE")
-
     current_path = HERE
     data_dir_path = DATA_DIR
     sample_dir_path = SAMPLE_DIR
     ner_dir_path = NER_DIR
 
-    csv_path = CSV_PATH
-    parsed_pickle_path = PARSED_PICKLE_PATH
-    sample_path = SAMPLE_PATH
-    nodes_path = NODES_PATH
-    edges_path = EDGES_PATH
-    mappings_path = MAPPINGS_PATH
+    csv_path = DATA_DIR.joinpath(get_config('RAW_DATA', CONFIG_DICT))
+    parsed_pickle_path = DATA_DIR.joinpath(get_config('PROCESSED_FILE', CONFIG_DICT))
+    sample_path = SAMPLE_DIR.joinpath(get_config('PROCESSED_SAMPLE', CONFIG_DICT))
+    nodes_path = DATA_DIR.joinpath(get_config('NODES_FILE', CONFIG_DICT))
+    edges_path = DATA_DIR.joinpath(get_config('EDGES_FILE', CONFIG_DICT))
+    mappings_path = DATA_DIR.joinpath(get_config('MAPPINGS_FILE', CONFIG_DICT))
 
     source_key = SOURCE_KEY
