@@ -171,7 +171,7 @@ class Processor:
                 "text",
                 "start:int",
                 "end:int",
-                self.config.source_key,
+                "source",
             ]
             tqdm.write(f"Recognized {len(rows):,} named entities in the {column} column")
             self.matches_dfs[column] = matches_df = pd.DataFrame(rows, columns=NER_COLUMNS).sort_values(
@@ -187,7 +187,7 @@ class Processor:
         """Processes the full DataFrame by concatenating the mappings DataFrame and the DataFrames of named entities recognized in the columns."""
         logger.info("Processing full dataframe")
         self.full_df = pd.concat([self.mappings_df, *self.matches_dfs.values()]).sort_values(":START_ID")
-        self.full_df = self.full_df[[":START_ID", ":END_ID", ":TYPE", "curie", self.config.source_key]]
+        self.full_df = self.full_df[[":START_ID", ":END_ID", ":TYPE", "curie", "source"]]
         self.full_df = self.full_df.drop_duplicates()
 
     def process_who_data(self) -> None:

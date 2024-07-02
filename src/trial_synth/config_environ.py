@@ -12,11 +12,24 @@ logger = logging.getLogger(__name__)
 class TrialSynthConfigError(Exception):
     pass
 
+def create_data_dir(registry):
+    """Create the data directory if it doesn't exist
+    """
+    home_dir = os.path.expanduser('~')
+    data_dir = os.path.join(home_dir, '.data', 'trialsynth', registry)
+
+    if not os.path.isdir(data_dir):
+        try:
+            os.makedirs(data_dir)
+        except Exception:
+            logger.warning(data_dir + ' already exists')
+
+    return data_dir
 def create_config_dict(registry):
     """Load the configuration file into the config_file dictionary
     """
     home_dir = os.path.expanduser('~')
-    config_dir = os.path.join(home_dir, '.config', registry)
+    config_dir = os.path.join(home_dir, '.config', 'trialsynth', registry)
     config_path = os.path.join(config_dir, 'config.ini')
     default_config_path = os.path.join(os.path.dirname(__file__),
                                        'resources/default_config.ini')
@@ -60,7 +73,10 @@ def create_config_dict(registry):
             config_dict[key] = None
         elif isinstance(config_dict[key], str):
             config_dict[key] = os.path.expanduser(config_dict[key])
-        return config_dict
+
+    config_dict['DATA_DIR'] = create_data_dir(registry)
+    config_dict['SOURCE_KEY'] = registry
+    return config_dict
 
 def get_config(key: str, config_dict: dict, failure_ok: bool=False):
     """

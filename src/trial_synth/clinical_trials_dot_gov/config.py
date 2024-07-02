@@ -9,7 +9,7 @@ from ..config_environ import create_config_dict, get_config
 CONFIG_DICT = create_config_dict("clinicaltrials")
 
 HERE = Path(__file__).parent.resolve()
-DATA_DIR = HERE.joinpath("data")
+DATA_DIR = Path(get_config('DATA_DIR', CONFIG_DICT))
 SAMPLE_DIR = DATA_DIR.joinpath("samples")
 
 FIELDS = [

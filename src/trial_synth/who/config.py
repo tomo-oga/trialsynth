@@ -5,11 +5,9 @@ from ..config_environ import create_config_dict, get_config
 CONFIG_DICT = create_config_dict("who")
 
 HERE = Path(__file__).parent.resolve()
-DATA_DIR = HERE.joinpath("data")
+DATA_DIR = Path(get_config('DATA_DIR', CONFIG_DICT))
 SAMPLE_DIR = DATA_DIR.joinpath("samples")
 NER_DIR = DATA_DIR.joinpath("ner")
-
-SOURCE_KEY = "who"
 
 FIELDS = [
     "curie",
@@ -43,4 +41,4 @@ class Config:
     edges_path = DATA_DIR.joinpath(get_config('EDGES_FILE', CONFIG_DICT))
     mappings_path = DATA_DIR.joinpath(get_config('MAPPINGS_FILE', CONFIG_DICT))
 
-    source_key = SOURCE_KEY
+    source_key = get_config('SOURCE_KEY', CONFIG_DICT)
