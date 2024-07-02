@@ -26,7 +26,7 @@ class Processor:
         Stores processed data to disk
     transformer : Transformer
         Transforms raw data into nodes and edges for a graph database
-    node_iterator : method
+    node_iterator : Callable
         Method to generate nodes from the transformed data
     nodes_by_type : defaultdict
         Nodes grouped by type
