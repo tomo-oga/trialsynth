@@ -9,6 +9,8 @@ from typing import Callable, Iterator
 import pandas as pd
 from tqdm import tqdm
 
+from .config import CONFIG_DICT
+
 from indra.databases import identifiers
 
 
@@ -169,7 +171,7 @@ class Storer:
         logger.info(f"Dumping edge data into {self.edges_path}...")
 
         metadata = sorted(set(key for rel in rels for key in rel.data))
-        header = ":START_ID", ":END_ID", ":TYPE", *metadata
+        header = ":START_ID", ":END_ID", ":TYPE", "curie", "source", *metadata
 
         rels = sorted(
             rels, key=lambda r: (r.source_ns, r.source_id, r.target_ns, r.target_id)
@@ -180,6 +182,9 @@ class Storer:
                 norm_id(rel.source_ns, rel.source_id),
                 norm_id(rel.target_ns, rel.target_id),
                 rel.rel_type,
+                rel.rel_id,
+                rel.target_ns,
+                CONFIG_DICT['SOURCE_KEY'],
                 *[rel.data.get(key) for key in metadata],
             )
             for rel in tqdm(rels, desc="Edges", unit_scale=True)
