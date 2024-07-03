@@ -6,7 +6,6 @@ import pandas as pd
 from tqdm import tqdm
 from typing import Optional
 from pathlib import Path
-from .config import DATA_DIR
 import bioregistry
 
 logger = logging.getLogger(__name__)

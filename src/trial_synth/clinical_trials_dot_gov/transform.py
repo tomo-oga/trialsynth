@@ -11,7 +11,7 @@ import gilda
 from indra.databases import mesh_client
 from indra.ontology.standardize import standardize_name_db_refs
 from indra.statements.agent import get_grounding
-from .config import CONFIG_DICT
+from .config import CONFIG
 logger = logging.getLogger(__name__)
 
 
@@ -366,7 +366,7 @@ class Transformer:
                 target_ns="CLINICALTRIALS",
                 target_id=target_id,
                 rel_type="has_condition",
-                rel_id = CONFIG_DICT['CONDITION_CURIE'],
+                rel_id = CONFIG.has_condition_curie,
                 data={}
             )
         added = set()
@@ -382,6 +382,6 @@ class Transformer:
                 target_ns="CLINICALTRIALS",
                 target_id=target_id,
                 rel_type="has_intervention",
-                rel_id=CONFIG_DICT['INTERVENTION_CURIE'],
+                rel_id=CONFIG.has_intervention_curie,
                 data={}
             )

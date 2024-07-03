@@ -7,7 +7,7 @@ from pathlib import Path
 
 import bioregistry
 
-from .config import FIELDS, Config
+from .config import FIELDS, CONFIG, Config
 from .trial_model import WHOTrial
 from .util import PREFIXES, makelist, transform_mappings, make_str
 from .validate import is_valid
@@ -15,14 +15,14 @@ from .fetch import load_saved_pickled_data
 
 logger = logging.getLogger(__name__)
 
-def ensure_df(config: Config = Config()) -> pd.DataFrame:
+def ensure_df(config: Config = CONFIG) -> pd.DataFrame:
     """
     Ensure that the DataFrame is loaded from a saved pickle file or from the CSV file
 
     Parameters
     ----------
     config: Config
-        Configuration for WHO data processing. Default: Config()
+        Configuration for WHO data processing
 
     Returns
     -------
@@ -32,7 +32,7 @@ def ensure_df(config: Config = Config()) -> pd.DataFrame:
     if config.parsed_pickle_path.is_file():
         return load_saved_pickled_data(config.parsed_pickle_path)
 
-    df = transform_csv_data(config.csv_path)
+    df = transform_csv_data(config.raw_data_path)
     df.to_pickle(config.parsed_pickle_path)
     return df
 

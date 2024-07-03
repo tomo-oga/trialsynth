@@ -9,7 +9,7 @@ from typing import Callable, Iterator
 import pandas as pd
 from tqdm import tqdm
 
-from .config import CONFIG_DICT
+from .config import CONFIG
 
 from indra.databases import identifiers
 
@@ -184,7 +184,7 @@ class Storer:
                 rel.rel_type,
                 rel.rel_id,
                 rel.target_ns,
-                CONFIG_DICT['SOURCE_KEY'],
+                CONFIG.source_key,
                 *[rel.data.get(key) for key in metadata],
             )
             for rel in tqdm(rels, desc="Edges", unit_scale=True)

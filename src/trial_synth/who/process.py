@@ -8,7 +8,7 @@ import bioregistry
 import gilda
 import gilda.ner
 
-from .config import Config, CONFIG_DICT
+from .config import Config
 from .store import store_dataframe_as_flat_file
 
 
@@ -76,7 +76,7 @@ class Processor:
                 mapped_name = curie_to_name.get(mapping_curie)
                 self.counter[mapped_name is not None].append(mapping_curie)
                 mapping_rows.append(
-                    (curie, mapping_curie, "related_trial", CONFIG_DICT['RELATED_TRIAL_CURIE'], self.config.source_key)
+                    (curie, mapping_curie, "related_trial", self.config.related_trial_curie, self.config.source_key)
                 )
 
         n_unmapped = len(self.counter[False])
@@ -106,7 +106,7 @@ class Processor:
                 "conditions",
                 ["doid", "mondo", "go", "MESH"],
                 "has_condition",
-                CONFIG_DICT['CONDITION_CURIE'],
+                self.config.has_condition_curie,
                 gilda.annotate,
                 {"doid:4"},
             ),
@@ -114,7 +114,7 @@ class Processor:
                 "interventions",
                 None,
                 "has_intervention",
-                CONFIG_DICT['INTERVENTION_CURIE'],
+                self.config.has_intervention_curie,
                 gilda.ner.annotate,
                 set()
             ),

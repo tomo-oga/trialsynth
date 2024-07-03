@@ -70,11 +70,11 @@ class Processor:
             Whether to fetch data from the API even if it exists on disk. Default: False
         """
         logger.debug("Ensuring input data exists on disk")
-        if self.config.unprocessed_file_path.is_file() and not refresh:
-            self.fetcher.raw_data = load_saved_data(self.config.unprocessed_file_path)
+        if self.config.raw_data_path.is_file() and not refresh:
+            self.fetcher.raw_data = load_saved_data(self.config.raw_data_path)
         else:
             self.fetcher.get_api_data(self.config.api_url, self.config.api_parameters)
-            self.storer.save_data(self.fetcher.raw_data, self.config.unprocessed_file_path)
+            self.storer.save_data(self.fetcher.raw_data, self.config.raw_data_path)
 
     def clean_and_transform_data(self) -> None:
         """Cleans and transforms the raw data into nodes and edges."""
