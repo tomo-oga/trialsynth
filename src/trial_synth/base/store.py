@@ -12,7 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-class Storer:
+class BaseStorer:
     def __init__(self, node_iterator: Callable[[], Iterator], node_types: list[str], config: BaseConfig):
         self.node_iterator = node_iterator
         self.node_types = node_types
