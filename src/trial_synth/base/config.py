@@ -13,15 +13,19 @@ else:
 
 logger = logging.getLogger(__name__)
 
+
 class TrialSynthConfigError(Exception):
     pass
+
 
 class BaseConfig:
     """
     User-mutable properties of a registry for data processing
     """
+
     def __init__(self):
         self.registry: str = None
+
     def __post_init__(self):
         self.config_dict: dict = self._create_config_dict()
 
@@ -30,8 +34,21 @@ class BaseConfig:
         self.data_dir: Path = Path(self.get_config('DATA_DIR'))
         self.sample_dir: Path = self.data_dir.joinpath('samples')
         self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_DATA'))
-        self.nodes_path: Path = self.get_data_path(self.get_config('NODES_FILE'))
+
+        # get types of nodes from configuration file and create paths
+        nodes_str: str = self.get_config('NODE_TYPES')
+        self.node_types: list[str] = [type.strip() for type in nodes_str.split(',')]
+        self.node_types_to_paths: dict = {
+            node_type: (
+                self.path_from_type_template(self.data_dir, 'NODE_FILE_TEMPLATE', node_type),
+                self.path_from_type_template(self.data_dir, 'NODE_PICKLE_TEMPLATE', node_type),
+                self.path_from_type_template(self.sample_dir, 'NODE_SAMPLE_TEMPLATE', node_type)
+            )
+            for node_type in self.node_types
+        }
+
         self.edges_path: Path = self.get_data_path(self.get_config('EDGES_FILE'))
+        self.edges_sample_path: Path = Path(self.sample_dir, self.get_config('EDGES_SAMPLE_FILE'))
 
         field_str: str = self.get_config('DATA_FIELDS')
         self.fields: list[str] = [field.strip() for field in field_str.split(',')]
@@ -154,3 +171,6 @@ class BaseConfig:
 
     def get_data_path(self, filename: str) -> Path:
         return Path(self.data_dir, filename)
+
+    def path_from_type_template(self, directory: Path, template: str, node_type: str) -> Path:
+        return Path(directory, self.get_config(template).replace('[TYPE]', node_type))
