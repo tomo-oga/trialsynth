@@ -1,4 +1,5 @@
 from typing import Optional
+
 def join_if_not_empty(data: list, delimiter: str = "|") -> Optional[str]:
     """Join a list of strings with a delimiter if the list is not empty
 
@@ -13,3 +14,6 @@ def join_if_not_empty(data: list, delimiter: str = "|") -> Optional[str]:
     if all(data):
         return delimiter.join(data)
     return None
+
+def list_from_string(data: str, delimiter: str = ",") -> list[str]:
+    return [item.strip() for item in data.split(delimiter)]

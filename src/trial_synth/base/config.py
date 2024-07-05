@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 import os
 
+from .util import list_from_string
+
 import shutil
 
 if sys.version_info[0] == 3:
@@ -36,8 +38,7 @@ class BaseConfig:
         self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_DATA'))
 
         # get types of nodes from configuration file and create paths
-        nodes_str: str = self.get_config('NODE_TYPES')
-        self.node_types: list[str] = [type.strip() for type in nodes_str.split(',')]
+        self.node_types: list[str] = list_from_string(self.get_config('NODE_TYPES'))
         self.node_types_to_paths: dict = {
             node_type: (
                 self.path_from_type_template(self.data_dir, 'NODE_FILE_TEMPLATE', node_type),
@@ -50,15 +51,16 @@ class BaseConfig:
         self.edges_path: Path = self.get_data_path(self.get_config('EDGES_FILE'))
         self.edges_sample_path: Path = Path(self.sample_dir, self.get_config('EDGES_SAMPLE_FILE'))
 
-        field_str: str = self.get_config('DATA_FIELDS')
-        self.fields: list[str] = [field.strip() for field in field_str.split(',')]
+        self.fields: list[str] = list_from_string(self.get_config('DATA_FIELDS'))
 
         self.api_url = self.get_config('API_URL')
         self.api_parameters = {}
 
-        self.has_condition_curie = self.get_config('CONDITION_CURIE')
-        self.has_intervention_curie = self.get_config('INTERVENTION_CURIE')
-        self.related_trial_curie = self.get_config('RELATED_TRIAL_CURIE')
+        self.has_condition_curie: str = self.get_config('CONDITION_CURIE')
+        self.has_intervention_curie: str = self.get_config('INTERVENTION_CURIE')
+        self.related_trial_curie: str = self.get_config('RELATED_TRIAL_CURIE')
+
+        self.node_headers: list[str] = list_from_string(self.get_config('NODE_HEADERS'))
 
         self.source_key = self.registry
 
@@ -174,3 +176,5 @@ class BaseConfig:
 
     def path_from_type_template(self, directory: Path, template: str, node_type: str) -> Path:
         return Path(directory, self.get_config(template).replace('[TYPE]', node_type))
+
+CONFIG = BaseConfig()
