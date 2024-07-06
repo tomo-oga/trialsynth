@@ -26,20 +26,50 @@ class BaseConfig:
     """
 
     def __init__(self):
-        self.registry: str = None
+        self.registry: str
+
+        self.config_dict: dict
+        self.name: str
+        self.fields: list[str]
+        self.node_types: list[str]
+        self.api_url: str
+        self.api_parameters: dict = {}
+
+
+        # directories
+        self.data_dir: Path
+        self.sample_dir: Path
+
+        # file paths
+        self.raw_data_path: Path
+        self.processed_data_path: Path
+        self.edges_path: Path
+        self.edges_sample_path: Path
+        self.node_types_to_paths: dict
+
+        #curies
+        self.has_condition_curie: str
+        self.has_intervention_curie: str
+        self.related_trial_curie: str
+
+        self.reg_headers_to_norm: dict
+
+
+
 
     def __post_init__(self):
-        self.config_dict: dict = self._create_config_dict()
+        self.config_dict = self._create_config_dict()
 
-        self.name: str = self.get_config('PROCESSOR_NAME')
+        self.name = self.get_config('PROCESSOR_NAME')
 
-        self.data_dir: Path = Path(self.get_config('DATA_DIR'))
-        self.sample_dir: Path = self.data_dir.joinpath('samples')
-        self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_DATA'))
+        self.data_dir = Path(self.get_config('DATA_DIR'))
+        self.sample_dir = self.data_dir.joinpath('samples')
+        self.raw_data_path = self.get_data_path(self.get_config('RAW_DATA'))
+        self.processed_data_path = self.get_data_path(self.get_config('PROCESSED_DATA'))
 
         # get types of nodes from configuration file and create paths
-        self.node_types: list[str] = list_from_string(self.get_config('NODE_TYPES'))
-        self.node_types_to_paths: dict = {
+        self.node_types = list_from_string(self.get_config('NODE_TYPES'))
+        self.node_types_to_paths = {
             node_type: (
                 self.path_from_type_template(self.data_dir, 'NODE_FILE_TEMPLATE', node_type),
                 self.path_from_type_template(self.data_dir, 'NODE_PICKLE_TEMPLATE', node_type),
@@ -48,10 +78,13 @@ class BaseConfig:
             for node_type in self.node_types
         }
 
-        self.edges_path: Path = self.get_data_path(self.get_config('EDGES_FILE'))
-        self.edges_sample_path: Path = Path(self.sample_dir, self.get_config('EDGES_SAMPLE_FILE'))
+        self.edges_path= self.get_data_path(self.get_config('EDGES_FILE'))
+        self.edges_sample_path= Path(self.sample_dir, self.get_config('EDGES_SAMPLE_FILE'))
 
-        self.fields: list[str] = list_from_string(self.get_config('DATA_FIELDS'))
+        self.fields = list_from_string(self.get_config('PROCESSED_DATA_HEADERS'))
+        self.reg_fields = list_from_string(self.get_config('DATA_FIELDS'))
+
+        self.reg_fields_to_fields = {reg_field: field for (reg_field, field) in zip(self.reg_fields, self.fields)}
 
         self.api_url = self.get_config('API_URL')
         self.api_parameters = {}
@@ -59,10 +92,6 @@ class BaseConfig:
         self.has_condition_curie: str = self.get_config('CONDITION_CURIE')
         self.has_intervention_curie: str = self.get_config('INTERVENTION_CURIE')
         self.related_trial_curie: str = self.get_config('RELATED_TRIAL_CURIE')
-
-        self.node_headers: list[str] = list_from_string(self.get_config('NODE_HEADERS'))
-
-        self.source_key = self.registry
 
         root = logging.getLogger()
         root.setLevel(self.get_config('LOGGING_LEVEL'))
@@ -177,4 +206,20 @@ class BaseConfig:
     def path_from_type_template(self, directory: Path, template: str, node_type: str) -> Path:
         return Path(directory, self.get_config(template).replace('[TYPE]', node_type))
 
-CONFIG = BaseConfig()
+
+fields_list = BaseConfig().fields
+
+@dataclass
+class DataFields:
+    id: str = fields_list[0]
+    name: str = fields_list[1]
+    type: str = fields_list[2]
+    design: str = fields_list[3]
+    conditions: str = fields_list[4]
+    interventions: str = fields_list[5]
+    primary_outcome: str = fields_list[6]
+    secondary_outcome: str = fields_list[7]
+    secondary_ids: str = fields_list[8]
+
+
+FIELDS = DataFields()
