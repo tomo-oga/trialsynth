@@ -12,6 +12,8 @@ import pandas as pd
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+
 class BaseStorer:
     def __init__(self, node_iterator: Callable[[], Iterator], node_types: list[str], config: BaseConfig):
         self.node_iterator = node_iterator
@@ -19,6 +21,7 @@ class BaseStorer:
         self.node_types_to_paths = config.node_types_to_paths
         self.edges_path = config.edges_path
         self.edges_sample_path = config.edges_sample_path
+        self.config = config
 
     def save_as_flat_file(self, data: pd.DataFrame, path: Path) -> None:
         """Saves data to disk as compressed TSV
@@ -88,7 +91,7 @@ class BaseStorer:
 
         node_rows = (
             (
-                norm_id(node.db_ns, node.db_id),
+                self.norm_id(node.db_ns, node.db_id),
                 ";".join(node.labels),
                 *[node.data.get(key, "") for key in metadata]
             )
@@ -133,12 +136,12 @@ class BaseStorer:
 
         edge_rows = (
             (
-                norm_id(rel.source_ns, rel.source_id),
-                norm_id(rel.target_ns, rel.target_id),
+                self.norm_id(rel.source_ns, rel.source_id),
+                self.norm_id(rel.target_ns, rel.target_id),
                 rel.rel_type,
                 rel.rel_id,
                 rel.target_ns,
-                CONFIG.source_key,
+                self.config.source_key,
                 *[rel.data.get(key) for key in metadata],
             )
             for rel in tqdm(rels, desc="Edges", unit_scale=True)
