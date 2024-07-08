@@ -1,11 +1,13 @@
+import pickle
+
 import pandas as pd
 from typing import Iterator, Optional
 from tqdm import tqdm
+from .trial import TrialModel, BioEntity, Outcome, ClinicalTrial
 
 from addict import Dict
 
-from .rest_api_response_models import BaseTrial
-from .config import FIELDS
+from .config import FIELDS, BaseConfig
 
 import gilda
 from indra.databases import mesh_client
@@ -64,32 +66,93 @@ def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
 
 
 class BaseTransformer:
-    def __init__(self):
-
+    def __init__(self, config: BaseConfig):
+        self.config = config
         # maps trialsynth headers to registry specific headers
-        self.norm_column_headers = Dict()
-
+        self.trials: list[TrialModel]
         self.df = pd.DataFrame()
 
-    def format_raw_data(self):
-        self.df = self.df[[header for header in self.norm_column_headers.values()]]
-        self.df.columns = [self.get_header(column) for column in self.df.columns]
+        self.has_condition_trial_id: list[str] = []
+        self.has_intervention_trial_id: list[str] = []
+        self.has_condition: list[BioEntity] = []
+        self.has_intervention: list[BioEntity] = []
 
-    def get_header(self, header: str):
-        reg_header = self.norm_column_headers[header]
+    @staticmethod
+    def transform_id(trial: TrialModel) -> str:
+        """Creates a CURIE for a trial"""
+        trial.id = trial.id.strip()
 
-        if not reg_header:
-            raise NotImplementedError("Must provide norm_headers in subclass")
+    @staticmethod
+    def transform_title(trial: TrialModel):
+        trial.title = trial.title.strip()
+    @staticmethod
+    def transform_type(trial: TrialModel) -> str:
+        trial.study_type = trial.study_type.strip()
+        return trial.study_type
 
-        return reg_header
+    @staticmethod
+    def transform_design(trial: TrialModel):
+        trial.design = (f'Purpose: {trial.design.purpose.strip()}; Allocation: {trial.design.allocation.strip()};'
+                        f'Masking: {trial.design.masking.strip()}; Assignment: {trial.design.assignment.strip()}')
+
+    @staticmethod
+    def transform_conditions(trial: TrialModel):
+        # use bio registry or something to standardize curies
+        trial.conditions = [condition.curie for condition in trial.conditions]
+
+    @staticmethod
+    def transform_interventions(trial: TrialModel):
+        # use bio registry or something to standardize curies
+        trial.interventions = [intervention.curie for intervention in trial.interventions]
+    @staticmethod
+    def transform_primary_outcome(trial: TrialModel):
+        trial.primary_outcome = (f'Measure: {trial.primary_outcome.measure.strip()}; '
+                                 f'Time Frame: {trial.primary_outcome.time_frame.strip()}')
+    @staticmethod
+    def transform_secondary_outcome(trial: TrialModel):
+        trial.secondary_outcome = (f'Measure: {trial.secondary_outcome.measure.strip()}; '
+                                 f'Time Frame: {trial.secondary_outcome.time_frame.strip()}')
+
+    @staticmethod
+    def transform_secondary_ids(trial: TrialModel) -> list[str]:
+        trial.secondary_ids = [id.curie for id in trial.secondary_ids]
 
     def get_nodes(self) -> Iterator:
-
-        id_to_data = {}
+        id_to_trial = {}
         yielded_nodes = set()
-        for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
-            id_to_data[row[FIELDS.id]] = {
-                FIELDS.type: or_na(row[FIELDS.type]),
-                FIELDS.conditions: self._transform_conditions(),
-                FIELDS.interventions: self._transform_interventions(),
-            }
+        for trial in tqdm(self.trials, total=len(self.trials)):
+            curie = self.transform_id(trial)
+
+            self.transform_title(trial)
+            self.transform_type(trial)
+            self.transform_design(trial)
+            self.transform_conditions(trial)
+            self.transform_interventions(trial)
+            self.transform_primary_outcome(trial)
+            self.transform_secondary_outcome(trial)
+            self.transform_secondary_ids(trial)
+
+            id_to_trial[curie] = trial
+
+            for condition in self.transform_conditions(trial):
+                if condition:
+                    self.has_condition_trial_id.append(trial.id)
+                    self.has_condition.append(condition)
+                    if condition not in yielded_nodes:
+                        yield condition
+                        yielded_nodes.add(condition)
+
+            for intervention in self.transform_interventions(trial):
+                if intervention:
+                    self.has_intervention_trial_id.append(trial.id)
+                    self.has_intervention.append(intervention)
+                    if intervention not in yielded_nodes:
+                        yield intervention
+                        yielded_nodes.add(intervention)
+
+        for id in set(self.has_condition_trial_id) or set(self.has_intervention_trial_id):
+            clinical_trial = id_to_trial[id]
+            if clinical_trial not in yielded_nodes:
+                yield clinical_trial
+                yielded_nodes.add(clinical_trial)
+
