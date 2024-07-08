@@ -7,6 +7,7 @@ import pickle
 from typing import Callable, Iterator
 
 from .config import BaseConfig
+from .trial import TrialModel
 
 import pandas as pd
 from tqdm import tqdm
@@ -22,6 +23,10 @@ class BaseStorer:
         self.edges_path = config.edges_path
         self.edges_sample_path = config.edges_sample_path
         self.config = config
+
+    def save_raw_data(self, trials: TrialModel):
+        with open(self.config.raw_data_path, 'wb') as file:
+            pickle.dump(self.trials, file)
 
     def save_as_flat_file(self, data: pd.DataFrame, path: Path) -> None:
         """Saves data to disk as compressed TSV
