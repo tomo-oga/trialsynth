@@ -4,7 +4,8 @@ from tqdm import tqdm
 
 from addict import Dict
 
-from .config import CONFIG
+from .rest_api_response_models import BaseTrial
+from .config import FIELDS
 
 import gilda
 from indra.databases import mesh_client
@@ -64,68 +65,31 @@ def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
 
 class BaseTransformer:
     def __init__(self):
-        self.condition_curie = []
-        self.condition_trial_curie = []
-
-        self.intervention_curie = []
-        self.intervention_trial_curie = []
-
-        self.problematic_mesh_ids = []
 
         # maps trialsynth headers to registry specific headers
-        self.norm_headers = {
-            "curie: ID": None,
-            ":NAME": None,
-            ":TYPE": None,
-            ":LABEL": None
-        }
+        self.norm_column_headers = Dict()
 
         self.df = pd.DataFrame()
 
-    def clean_raw_data(self) -> None:
-        """Clean up values from raw data"""
-
-        raise NotImplementedError("Must be defined in subclass.")
-
-    def get_nodes(self) -> Iterator:
-        raise NotImplementedError("Must be defined in subclass")
-
-    def get_edges(self):
-        """Get edges from the DataFrame and transformed data"""
-        added = set()
-        for cond_curie, trial_curie in zip(
-                self.condition_curie, self.condition_trial_curie
-        ):
-            if (cond_curie, trial_curie) in added:
-                continue
-            added.add((cond_curie, trial_curie))
-            yield Dict(
-                source_curie=cond_curie,
-                target_curie=trial_curie,
-                rel_type="has_condition",
-                rel_curie=CONFIG.has_condition_curie,
-                data={}
-            )
-
-        added = set()
-        for int_curie, trial_curie in zip(
-                self.intervention_curie, self.intervention_trial_curie
-        ):
-            if (int_curie, trial_curie) in added:
-                continue
-            added.add((int_curie, trial_curie))
-            yield Dict(
-                source_curie=int_curie,
-                target_curie=trial_curie,
-                rel_type="has_intervention",
-                rel_id=CONFIG.has_intervention_curie,
-                data={}
-            )
+    def format_raw_data(self):
+        self.df = self.df[[header for header in self.norm_column_headers.values()]]
+        self.df.columns = [self.get_header(column) for column in self.df.columns]
 
     def get_header(self, header: str):
-        reg_header = self.norm_headers[header]
+        reg_header = self.norm_column_headers[header]
 
         if not reg_header:
             raise NotImplementedError("Must provide norm_headers in subclass")
 
         return reg_header
+
+    def get_nodes(self) -> Iterator:
+
+        id_to_data = {}
+        yielded_nodes = set()
+        for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
+            id_to_data[row[FIELDS.id]] = {
+                FIELDS.type: or_na(row[FIELDS.type]),
+                FIELDS.conditions: self._transform_conditions(),
+                FIELDS.interventions: self._transform_interventions(),
+            }
