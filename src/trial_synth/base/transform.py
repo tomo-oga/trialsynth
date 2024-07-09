@@ -3,14 +3,16 @@ import pickle
 import pandas as pd
 from typing import Iterator, Optional
 from tqdm import tqdm
-from .trial import TrialModel, BioEntity, Outcome, ClinicalTrial, Edge
+from .trial import TrialModel, Edge
 
-from addict import Dict
+from bioregistry import curie_to_str
 
-from .config import FIELDS, BaseConfig
+from .config import BaseConfig
 
 import gilda
 from indra.databases import mesh_client
+from indra.ontology.standardize import standardize_name_db_refs
+from indra.statements.agent import get_grounding
 
 
 def or_na(x):
@@ -21,6 +23,29 @@ def or_na(x):
 def is_na(x):
     """Check if a value is NaN or None."""
     return True if pd.isna(x) or not x else False
+
+
+def standardize(prefix: str, identifier: str) -> tuple[str, str]:
+    """Get a standardized prefix and identifier.
+
+    Parameters
+    ----------
+    prefix : str
+        The prefix to standardize.
+    identifier : str
+        The identifier to standardize.
+
+    Returns
+    -------
+    tuple[str, str]
+        A tuple of the standardized prefix and identifier.
+    """
+
+    standard_name, db_refs = standardize_name_db_refs({prefix: identifier})
+    db_ns, db_id = get_grounding(db_refs)
+    if db_ns is None or db_id is None:
+        return prefix, identifier
+    return db_ns, db_id
 
 
 def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
@@ -68,7 +93,6 @@ def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
 class BaseTransformer:
     def __init__(self, config: BaseConfig):
         self.config = config
-        # maps trialsynth headers to registry specific headers
         self.trials: list[TrialModel]
         self.df = pd.DataFrame()
 
@@ -79,16 +103,18 @@ class BaseTransformer:
 
     @staticmethod
     def transform_id(trial: TrialModel) -> str:
-        """Creates a CURIE for a trial"""
-        trial.id = trial.id.strip()
+        """Formats a CURIE for a trial"""
+        prefix, id = standardize(trial.db, trial.id)
+        trial.curie = curie_to_str(prefix, id)
+
 
     @staticmethod
     def transform_title(trial: TrialModel):
         trial.title = trial.title.strip()
+
     @staticmethod
     def transform_type(trial: TrialModel) -> str:
         trial.study_type = trial.study_type.strip()
-        return trial.study_type
 
     @staticmethod
     def transform_design(trial: TrialModel):
@@ -104,14 +130,16 @@ class BaseTransformer:
     def transform_interventions(trial: TrialModel):
         # use bio registry or something to standardize curies
         trial.interventions = [intervention.curie for intervention in trial.interventions]
+
     @staticmethod
     def transform_primary_outcome(trial: TrialModel):
         trial.primary_outcome = (f'Measure: {trial.primary_outcome.measure.strip()}; '
                                  f'Time Frame: {trial.primary_outcome.time_frame.strip()}')
+
     @staticmethod
     def transform_secondary_outcome(trial: TrialModel):
         trial.secondary_outcome = (f'Measure: {trial.secondary_outcome.measure.strip()}; '
-                                 f'Time Frame: {trial.secondary_outcome.time_frame.strip()}')
+                                   f'Time Frame: {trial.secondary_outcome.time_frame.strip()}')
 
     @staticmethod
     def transform_secondary_ids(trial: TrialModel) -> list[str]:
@@ -155,7 +183,6 @@ class BaseTransformer:
             if clinical_trial not in yielded_nodes:
                 yield clinical_trial
                 yielded_nodes.add(clinical_trial)
-
 
     def get_edges(self):
         added = set()

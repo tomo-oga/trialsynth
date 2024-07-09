@@ -37,6 +37,8 @@ class Outcome:
 
 class TrialModel:
     id: str
+    db: str
+    curie: str
     title: str
     type: str
     design: Union[DesignInfo, str]
