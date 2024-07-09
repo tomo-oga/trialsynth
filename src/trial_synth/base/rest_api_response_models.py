@@ -40,13 +40,3 @@ class DesignInfo(BaseModel):
 class Outcome(BaseModel):
     primary_outcome: str = Field(alias='primary')
     secondary_outcome: str = Field(alias='secondary', default=None)
-
-
-class BaseTrial(BaseModel):
-    id: ID
-    study_type: str
-    design: DesignInfo
-    conditions: Conditions
-    interventions: Interventions
-    outcome: Outcome
-

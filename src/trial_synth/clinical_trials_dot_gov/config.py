@@ -9,11 +9,10 @@ class Config(BaseConfig):
     User-mutable properties of Clinicaltrials.gov data processing
     """
     def __init__(self):
-        self.registry = 'clinicaltrials'
-        super().__post_init__()
+        super(Config, self).__init__(registry='clinicaltrials')
 
         self.api_parameters = {
-            "fields": ",".join(self.fields),  # actually column names, not fields
+            "fields": ",".join(self.reg_fields),  # actually column names, not fields
             "pageSize": 1000,
             "countTotal": "true"
         }

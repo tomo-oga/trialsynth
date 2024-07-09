@@ -3,7 +3,7 @@ import pickle
 import pandas as pd
 from typing import Iterator, Optional
 from tqdm import tqdm
-from .trial import TrialModel, BioEntity, Outcome, ClinicalTrial
+from .trial import TrialModel, BioEntity, Outcome, ClinicalTrial, Edge
 
 from addict import Dict
 
@@ -72,10 +72,10 @@ class BaseTransformer:
         self.trials: list[TrialModel]
         self.df = pd.DataFrame()
 
-        self.has_condition_trial_id: list[str] = []
-        self.has_intervention_trial_id: list[str] = []
-        self.has_condition: list[BioEntity] = []
-        self.has_intervention: list[BioEntity] = []
+        self.has_condition_trial_curie: list[str] = []
+        self.has_intervention_trial_curie: list[str] = []
+        self.has_condition: list[str] = []
+        self.has_intervention: list[str] = []
 
     @staticmethod
     def transform_id(trial: TrialModel) -> str:
@@ -118,7 +118,7 @@ class BaseTransformer:
         trial.secondary_ids = [id.curie for id in trial.secondary_ids]
 
     def get_nodes(self) -> Iterator:
-        id_to_trial = {}
+        curie_to_trial = {}
         yielded_nodes = set()
         for trial in tqdm(self.trials, total=len(self.trials)):
             curie = self.transform_id(trial)
@@ -132,27 +132,44 @@ class BaseTransformer:
             self.transform_secondary_outcome(trial)
             self.transform_secondary_ids(trial)
 
-            id_to_trial[curie] = trial
+            curie_to_trial[curie] = trial
 
             for condition in self.transform_conditions(trial):
                 if condition:
-                    self.has_condition_trial_id.append(trial.id)
-                    self.has_condition.append(condition)
+                    self.has_condition_trial_curie.append(trial.id)
+                    self.has_condition.append(condition.curie)
                     if condition not in yielded_nodes:
                         yield condition
                         yielded_nodes.add(condition)
 
             for intervention in self.transform_interventions(trial):
                 if intervention:
-                    self.has_intervention_trial_id.append(trial.id)
-                    self.has_intervention.append(intervention)
+                    self.has_intervention_trial_curie.append(trial.id)
+                    self.has_intervention.append(intervention.curie)
                     if intervention not in yielded_nodes:
                         yield intervention
                         yielded_nodes.add(intervention)
 
-        for id in set(self.has_condition_trial_id) or set(self.has_intervention_trial_id):
-            clinical_trial = id_to_trial[id]
+        for curie in set(self.has_condition_trial_curie) or set(self.has_intervention_trial_curie):
+            clinical_trial = curie_to_trial[curie]
             if clinical_trial not in yielded_nodes:
                 yield clinical_trial
                 yielded_nodes.add(clinical_trial)
 
+
+    def get_edges(self):
+        added = set()
+
+        # could be abstracted later to method for handling different edge types
+        for condition, trial in zip(self.has_condition, self.has_condition_trial_curie):
+            if (condition, trial) in added:
+                continue
+            added.add((condition, trial))
+            yield Edge(condition, trial, "has_condition")
+
+        added = set()
+        for intervention, trial in zip(self.has_intervention, self.has_intervention_trial_curie):
+            if (intervention, trial) in added:
+                continue
+            added.add((intervention, trial))
+            yield Edge(intervention, trial, "has_intervention")
