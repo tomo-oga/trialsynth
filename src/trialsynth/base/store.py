@@ -7,7 +7,7 @@ import pickle
 from typing import Callable, Iterator
 
 from .config import BaseConfig
-from .trial import TrialModel
+from .models import Trial, BioEntity
 
 import pandas as pd
 from tqdm import tqdm
@@ -24,7 +24,7 @@ class BaseStorer:
         self.edges_sample_path = config.edges_sample_path
         self.config = config
 
-    def save_raw_data(self, trials: TrialModel):
+    def save_raw_data(self, trials: list[Trial]):
         with open(self.config.raw_data_path, 'wb') as file:
             pickle.dump(self.trials, file)
 
@@ -54,7 +54,10 @@ class BaseStorer:
         RunTimeError
             If no nodes were generated for the graph
         """
-        nodes_by_type = defaultdict(list)
+        nodes_by_type = {
+            "ClinicalTrial": list(),
+            "BioEntity": list()
+        }
 
         nodes = tqdm(
             self.node_iterator(),
@@ -64,7 +67,10 @@ class BaseStorer:
         # Map nodes to their respective types
         ix = 0
         for ix, node in enumerate(nodes):
-            nodes_by_type[node.labels[0]].append(node)
+            if isinstance(node, Trial):
+                nodes_by_type["ClinicalTrial"].append(node)
+            if isinstance(node, BioEntity):
+                nodes_by_type["BioEntity"].append(node)
         if ix == 0:
             raise RuntimeError(f"No nodes were generated for {self.name}")
         for node_type in nodes_by_type:

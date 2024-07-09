@@ -7,14 +7,13 @@ from tqdm import trange
 from typing import Optional
 
 from .config import BaseConfig
-from pydantic import BaseModel
-
+from .models import Trial
 logger = logging.getLogger(__name__)
 
 
 class BaseFetcher:
     def __init__(self, url, api_parameters):
-        self.raw_data = pd.DataFrame()
+        self.raw_data: list[Trial] = list()
         self.url = url
         self.api_parameters = api_parameters
         self.total_pages = 0
@@ -23,7 +22,7 @@ class BaseFetcher:
 
     def get_api_data(self) -> None:
         """
-        Fetches data from an API
+        Fetches data from an API, and transforms it into a list of `Trial`s
         Parameters
         ----------
         url : str

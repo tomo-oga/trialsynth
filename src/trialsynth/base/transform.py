@@ -3,7 +3,7 @@ import pickle
 import pandas as pd
 from typing import Iterator, Optional
 from tqdm import tqdm
-from .trial import TrialModel, Edge
+from .models import Trial, Edge
 
 from bioregistry import curie_to_str
 
@@ -11,8 +11,6 @@ from .config import BaseConfig
 
 import gilda
 from indra.databases import mesh_client
-from indra.ontology.standardize import standardize_name_db_refs
-from indra.statements.agent import get_grounding
 
 
 def or_na(x):
@@ -25,27 +23,7 @@ def is_na(x):
     return True if pd.isna(x) or not x else False
 
 
-def standardize(prefix: str, identifier: str) -> tuple[str, str]:
-    """Get a standardized prefix and identifier.
 
-    Parameters
-    ----------
-    prefix : str
-        The prefix to standardize.
-    identifier : str
-        The identifier to standardize.
-
-    Returns
-    -------
-    tuple[str, str]
-        A tuple of the standardized prefix and identifier.
-    """
-
-    standard_name, db_refs = standardize_name_db_refs({prefix: identifier})
-    db_ns, db_id = get_grounding(db_refs)
-    if db_ns is None or db_id is None:
-        return prefix, identifier
-    return db_ns, db_id
 
 
 def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
@@ -93,7 +71,7 @@ def get_correct_mesh_id(mesh_id: str, mesh_term: Optional[str] = None) -> str:
 class BaseTransformer:
     def __init__(self, config: BaseConfig):
         self.config = config
-        self.trials: list[TrialModel]
+        self.trials: list[Trial]
         self.df = pd.DataFrame()
 
         self.has_condition_trial_curie: list[str] = []
@@ -102,47 +80,48 @@ class BaseTransformer:
         self.has_intervention: list[str] = []
 
     @staticmethod
-    def transform_id(trial: TrialModel) -> str:
+    def transform_id(trial: Trial) -> str:
         """Formats a CURIE for a trial"""
         prefix, id = standardize(trial.db, trial.id)
+        trial.db, trial.id = prefix, id
         trial.curie = curie_to_str(prefix, id)
 
 
     @staticmethod
-    def transform_title(trial: TrialModel):
+    def transform_title(trial: Trial):
         trial.title = trial.title.strip()
 
     @staticmethod
-    def transform_type(trial: TrialModel) -> str:
+    def transform_type(trial: Trial) -> str:
         trial.study_type = trial.study_type.strip()
 
     @staticmethod
-    def transform_design(trial: TrialModel):
+    def transform_design(trial: Trial):
         trial.design = (f'Purpose: {trial.design.purpose.strip()}; Allocation: {trial.design.allocation.strip()};'
                         f'Masking: {trial.design.masking.strip()}; Assignment: {trial.design.assignment.strip()}')
 
     @staticmethod
-    def transform_conditions(trial: TrialModel):
+    def transform_conditions(trial: Trial):
         # use bio registry or something to standardize curies
         trial.conditions = [condition.curie for condition in trial.conditions]
 
     @staticmethod
-    def transform_interventions(trial: TrialModel):
+    def transform_interventions(trial: Trial):
         # use bio registry or something to standardize curies
         trial.interventions = [intervention.curie for intervention in trial.interventions]
 
     @staticmethod
-    def transform_primary_outcome(trial: TrialModel):
+    def transform_primary_outcome(trial: Trial):
         trial.primary_outcome = (f'Measure: {trial.primary_outcome.measure.strip()}; '
                                  f'Time Frame: {trial.primary_outcome.time_frame.strip()}')
 
     @staticmethod
-    def transform_secondary_outcome(trial: TrialModel):
+    def transform_secondary_outcome(trial: Trial):
         trial.secondary_outcome = (f'Measure: {trial.secondary_outcome.measure.strip()}; '
                                    f'Time Frame: {trial.secondary_outcome.time_frame.strip()}')
 
     @staticmethod
-    def transform_secondary_ids(trial: TrialModel) -> list[str]:
+    def transform_secondary_ids(trial: Trial) -> list[str]:
         trial.secondary_ids = [id.curie for id in trial.secondary_ids]
 
     def get_nodes(self) -> Iterator:
