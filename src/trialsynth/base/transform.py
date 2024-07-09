@@ -79,12 +79,6 @@ class BaseTransformer:
         self.has_condition: list[str] = []
         self.has_intervention: list[str] = []
 
-    @staticmethod
-    def transform_id(trial: Trial) -> str:
-        """Formats a CURIE for a trial"""
-        prefix, id = standardize(trial.db, trial.id)
-        trial.db, trial.id = prefix, id
-        trial.curie = curie_to_str(prefix, id)
 
 
     @staticmethod
@@ -128,7 +122,7 @@ class BaseTransformer:
         curie_to_trial = {}
         yielded_nodes = set()
         for trial in tqdm(self.trials, total=len(self.trials)):
-            curie = self.transform_id(trial)
+            curie = trial.curie
 
             self.transform_title(trial)
             self.transform_type(trial)

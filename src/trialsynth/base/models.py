@@ -50,8 +50,8 @@ class Trial(Node):
         self.title: str = None
         self.type: str = None
         self.design: Union[DesignInfo, str] = None
-        self.conditions: list[BioEntity] = list()
-        self.interventions: list[BioEntity] = list()
+        self.conditions: list = list()
+        self.interventions: list = list()
         self.primary_outcome: Union[Outcome, str] = list()
         self.secondary_outcome: Union[Outcome, str] = list()
         self.secondary_ids: Union[list[SecondaryId], list[str]] = list()
@@ -60,13 +60,14 @@ class Trial(Node):
 class BioEntity(Node):
     def __init__(self, ns: str, id: str, term: str):
         super(BioEntity, self).__init__(ns, id)
-        self.term = str
+        self.term = term
 
 
 class Edge:
     def __init__(self, bio_ent_curie: str, trial_curie: str, rel_type: str):
         self.bio_ent_curie = bio_ent_curie
         self.trial_curie = trial_curie
+        self.rel_type = rel_type
 
         rel_type_to_curie = {
             "has_condition": "debio:0000036",

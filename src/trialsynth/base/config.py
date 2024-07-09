@@ -29,8 +29,6 @@ class BaseConfig:
         self.registry: str = registry
         self.config_dict: dict = self._create_config_dict()
 
-        self.name: str = self.get_config('PROCESSOR_NAME')
-
         # directories
         self.data_dir: Path = Path(self.get_config('DATA_DIR'))
         self.sample_dir: Path = self.data_dir.joinpath('samples')
@@ -53,19 +51,9 @@ class BaseConfig:
         self.edges_path: Path = self.get_data_path(self.get_config('EDGES_FILE'))
         self.edges_sample_path: Path = Path(self.sample_dir, self.get_config('EDGES_SAMPLE_FILE'))
 
-        self.fields: list[str] = list_from_string(self.get_config('PROCESSED_DATA_HEADERS'))
-        self.reg_fields: list[str] = list_from_string(self.get_config('DATA_FIELDS'))
-
-
         self.api_url: str = self.get_config('API_URL')
+        self.api_parameters = self.get_config('API_FIELDS')
         self.api_parameters: dict = {}
-
-        # curies
-        self.has_condition_curie: str = self.get_config('CONDITION_CURIE')
-        self.has_intervention_curie: str = self.get_config('INTERVENTION_CURIE')
-        self.related_trial_curie: str = self.get_config('RELATED_TRIAL_CURIE')
-
-        self.reg_headers_to_norm: dict = {}
 
         root = logging.getLogger()
         root.setLevel(self.get_config('LOGGING_LEVEL'))
@@ -179,21 +167,3 @@ class BaseConfig:
 
     def path_from_type_template(self, directory: Path, template: str, node_type: str) -> Path:
         return Path(directory, self.get_config(template).replace('[TYPE]', node_type))
-#
-#
-# fields_list = BaseConfig().fields
-#
-# @dataclass
-# class DataFields:
-#     id: str = fields_list[0]
-#     name: str = fields_list[1]
-#     type: str = fields_list[2]
-#     design: str = fields_list[3]
-#     conditions: str = fields_list[4]
-#     interventions: str = fields_list[5]
-#     primary_outcome: str = fields_list[6]
-#     secondary_outcome: str = fields_list[7]
-#     secondary_ids: str = fields_list[8]
-#
-#
-# FIELDS = DataFields()
