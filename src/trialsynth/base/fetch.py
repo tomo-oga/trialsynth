@@ -6,6 +6,8 @@ import requests
 from tqdm import trange
 from typing import Optional
 
+import gzip
+
 from .config import BaseConfig
 from .models import Trial
 import pickle
@@ -30,7 +32,12 @@ class BaseFetcher:
         request_parameters: dict
             Parameters to send with API request
         """
-        raise NotImplementedError("Must be defined in subclass.")
+        raise NotImplementedError("Must be defined in subclass")
+
+    def save_raw_data(self, save_flatfile=False):
+        logger.info(f'Pickling raw trial data to {self.config.raw_trial_path}')
+        with gzip.open(self.config.raw_trial_path, 'wb') as file:
+            pickle.dump(self.raw_data, file)
 
     def send_request(self) -> dict:
         """ Sends a request to the API and returns the response as JSON
@@ -47,11 +54,7 @@ class BaseFetcher:
             logger.exception(f"Error with request to {self.url} using params {self.params}")
             raise
 
-    def load_saved_data(self):
-        path = self.config.raw_data_path
-        logger.info(f"Loading {self.config.registry} data from {path}")
-
-        try:
-            self.raw_data = pickle.load(path)
-        except Exception:
-            logger.exception(f"Could not load data from {path}")
+    def load_saved_data(self) -> list[Trial]:
+        logger.info(f"Loading saved data from {self.config.raw_trial_path}")
+        with gzip.open(self.config.raw_trial_path, 'r') as file:
+            self.raw_data = pickle.load(file)

@@ -1,113 +1,52 @@
-import logging
+from ..base.models import Trial, BioEntity
+from ..base.transform import BaseTransformer
+from .config import Config
 
-import csv
-import pandas as pd
-from tqdm import tqdm
-from pathlib import Path
+import gilda
+from tqdm.contrib.logging import logging_redirect_tqdm
 
-import bioregistry
 
-from .config import FIELDS, CONFIG, Config
-from .trial_model import WHOTrial
-from .util import PREFIXES, makelist, transform_mappings, make_str
-from .validate import is_valid
-from .fetch import load_saved_pickled_data
+class Transformer(BaseTransformer):
+    def __init__(self, config: Config):
+        super().__init__(config)
 
-logger = logging.getLogger(__name__)
+    @staticmethod
+    def transform_conditions(trial: Trial):
+        name_spaces = ["MESH", "doid", "mondo", "go"]
+        conditions: list[BioEntity] = []
+        for condition in trial.conditions:
+            with logging_redirect_tqdm():
+                # have gilda try and ground condition
+                annotations = gilda.annotate(condition.term)
+                for _text, match, _, _ in annotations:
+                    condition = BioEntity(match.term.ns, match.term.id, _text)
+                    condition.standardize(name_spaces)
+                    condition.create_curie()
+                    conditions.append(condition)
+        trial.conditions = conditions
 
-def ensure_df(config: Config = CONFIG) -> pd.DataFrame:
-    """
-    Ensure that the DataFrame is loaded from a saved pickle file or from the CSV file
 
-    Parameters
-    ----------
-    config: Config
-        Configuration for WHO data processing
+    @staticmethod
+    def transform_interventions(trial: Trial):
+        interventions: list[BioEntity] = []
+        for intervention in trial.interventions:
+            with logging_redirect_tqdm():
+                intervention_type, intervention = intervention.term.split(':')
+                # first try grounding intervention with type context
+                int_ground = gilda.ground(intervention.strip(), context=intervention_type.strip())
 
-    Returns
-    -------
-    pd.DataFrame
-        The DataFrame of the WHO data
-    """
-    if config.parsed_pickle_path.is_file():
-        return load_saved_pickled_data(config.parsed_pickle_path)
+                # if the grounding doesn't work try ner
+                if int_ground is None:
+                    annotations = gilda.annotate(intervention.term)
+                    for _text, match, _, _ in annotations:
+                        intervention = BioEntity(match.term.ns, match.term.id, _text)
+                        intervention.standardize()
+                        intervention.create_curie()
+                        interventions.append(intervention)
+        trial.append(interventions)
 
-    df = transform_csv_data(config.raw_data_path)
-    df.to_pickle(config.parsed_pickle_path)
-    return df
 
-def transform_csv_data(path: Path) -> pd.DataFrame:
-    """Transforms WHO data from CSV into a DataFrame
 
-    Parameters
-    ----------
-    path : Path
-        CSV data file path
-    
-    Returns
-    -------
-    pd.DataFrame
-        Transformed WHO data
-    """
-    rows = []
-    with open(path, mode='r') as file:
-        lines = [line for line in file]
 
-        for trial in tqdm(csv.reader(lines), desc="Reading CSV WHO data", total=len(lines), unit='lines'):
-            trial_id = trial[0].strip()
-            trial_id = trial_id.replace('\ufeff', '')
-            for p, prefix in PREFIXES.items():
-                if trial_id.startswith(p) or trial_id.startswith(p.lower()):
-                    break
-            else:
-                msg = f"could not identify {trial_id}"
-                raise ValueError(msg)
 
-            if trial_id.startswith("EUCTR"):
-                trial_id = trial_id.removeprefix("EUCTR")
-                trial_id = "-".join(trial_id.split("-")[:3])
 
-            # handling inconsistencies with ChiCTR trial IDs
-            if trial_id.lower().startswith("chictr-"):
-                trial_id = "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
-
-            trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-")
-
-            if not is_valid(p, trial_id):
-                tqdm.write(f"Failed validation: {trial_id}")
-
-            who_trial = WHOTrial(
-                curie = bioregistry.curie_to_str(prefix, trial_id),
-                name = make_str(trial[3]),
-                study_type = make_str(trial[18]),
-                study_design= makelist(trial[19], '.'),
-                countries = makelist(trial[28], '.'),
-                conditions = makelist(trial[29], ';'),
-                intervention = makelist(trial[30], ';'),
-                primary_outcome = make_str(trial[36]),
-                secondary_outcome = make_str(trial[37]),
-                mappings = make_str(trial[2])
-            )
-
-            rows.append(
-                (
-                    who_trial.curie,
-                    who_trial.name,
-                    who_trial.study_type,
-                    who_trial.study_design,
-                    who_trial.countries,
-                    who_trial.conditions,
-                    who_trial.intervention,
-                    who_trial.primary_outcome,
-                    who_trial.secondary_outcome,
-                    who_trial.mappings,
-                )
-            )
-
-        df = pd.DataFrame(
-            rows,
-            columns=FIELDS
-        ).sort_values("curie")
-
-        df["mappings"] = df.mappings.map(transform_mappings)
-        return df

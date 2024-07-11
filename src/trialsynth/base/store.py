@@ -24,9 +24,6 @@ class BaseStorer:
         self.edges_sample_path = config.edges_sample_path
         self.config = config
 
-    def save_raw_data(self, trials: list[Trial]):
-        with open(self.config.raw_data_path, 'wb') as file:
-            pickle.dump(trials, file)
 
     def save_node_data(self) -> None:
         """

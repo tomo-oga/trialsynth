@@ -35,8 +35,3 @@ class BaseProcessor:
         else:
             self.fetcher.get_api_data()
             self.storer.save_as_flat_file(self.fetcher.raw_data, self.config.raw_data_path)
-
-    def clean_and_transform_data(self) -> None:
-        logger.info("Cleaning and transforming data")
-        self.transformer.df = self.fetcher.raw_data
-        self.transformer.format_raw_data()

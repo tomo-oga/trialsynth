@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import logging
 from indra.ontology.standardize import standardize_name_db_refs
 from indra.statements.agent import get_grounding
@@ -27,26 +27,32 @@ class Outcome:
 
 
 class Node:
-    def __init__(self, ns: str, id: str):
+    def __init__(self, ns: str, ns_id: str):
         self.ns: str = ns
-        self.id: str = id
-        self.standardize()
+        self.id: str = ns_id
+        self.is_standardized = False
 
-        self.curie: str = curie_to_str(self.ns, self.id)
+        self.curie: str = None
 
-    def standardize(self):
+    def standardize(self, ns_priority: Optional[list] = None):
         """Standardizes namespace and identifier"""
 
-        standard_name, db_refs = standardize_name_db_refs({self.ns: self.id})
+        standard_name, db_refs = standardize_name_db_refs({self.ns: self.id}, ns_order=ns_priority)
         db_ns, db_id = get_grounding(db_refs)
         if db_ns is not None and db_id is not None:
             self.ns = db_ns
             self.id = db_id
+            self.is_standardized = True
+
+    def create_curie(self):
+        if not self.is_standardized:
+            logger.warning(f'Attempting curie creation with non standardized namespace and id: {self.ns}:{self.id}')
+        self.curie = curie_to_str(self.ns, self.id)
 
 
 class Trial(Node):
-    def __init__(self, ns: str, id: str, ):
-        super(Node, self).__init__(ns, id)
+    def __init__(self, ns: str, id: str):
+        super().__init__(ns, id)
         self.title: str = None
         self.type: str = None
         self.design: Union[DesignInfo, str] = None

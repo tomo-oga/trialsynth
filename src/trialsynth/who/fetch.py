@@ -1,41 +1,67 @@
-"""Gets WHO data from REST API (not implemented) or saved file"""
+import csv
+import pickle
 
-import logging
-from pathlib import Path
-
-import pandas as pd
-
-
-logger = logging.getLogger(__name__)
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 
-def get_api_data() -> None:
-    raise NotImplementedError("WHO CSV data fetch not automated")
+from ..base.fetch import BaseFetcher, logger
+from .config import Config
+from .trial_model import WhoTrial
 
-    # How to get the dump:
-    #
-    # Navigate to
-    # https://worldhealthorg-my.sharepoint.com/:f:/g/personal/karamg_who_int/Eg8Fm2P5H7lCnJjDZaVLXcQBsBgP3tYXdMQITaidjK05uw?id=%2fpersonal%2fkaramg_who_int%2fDocuments%2fICTRP+weekly+updates&xsdata=MDV8MDJ8b2dhLnRAbm9ydGhlYXN0ZXJuLmVkdXw1YzE4NzVjNDI5NDk0MzQwNDZiMTA4ZGM5MWJmNDEzZHxhOGVlYzI4MWFhYTM0ZGFlYWM5YjlhMzk4YjkyMTVlN3wwfDB8NjM4NTQ1NDk3ODYxNzQyMzQzfFVua25vd258VFdGcGJHWnNiM2Q4ZXlKV0lqb2lNQzR3TGpBd01EQWlMQ0pRSWpvaVYybHVNeklpTENKQlRpSTZJazFoYVd3aUxDSlhWQ0k2TW4wPXwwfHx8&sdata=UndvcUZmbitCNEZLRDhkVUo3NEFjTWswNmNTMnd1ZnFxMEdsWXBnUWNkTT0%3d
-    #
-    # Select most recent dump (e.g. "ICTRP_FullExport-1003291-20-06-2024") and press 'Download'
-    # Save the export to the .data/trialsynth/who directory as 'ICTRP.csv'
+from .util import PREFIXES, makelist, make_str
+from ..base.models import BioEntity
 
 
-def load_saved_pickled_data(path: Path) -> pd.DataFrame:
-    """Loads the pickled data from a saved file
+class Fetcher(BaseFetcher):
+    def __init__(self, config: Config):
+        super().__init__()
+        self.config = config
 
-    Parameters
-    ----------
-    path : Path
-        Path to the saved pickled data
+    def get_api_data(self):
+        trial_path = self.config.raw_trial_path
+        if trial_path.is_file():
+            self.load_saved_data()
+            return
+        path = self.config.raw_data_path
+        with open(path, 'r') as file:
+            trials = [trial for trial in file]
 
-    Returns
-    -------
-    DataFrame
-        The pickled data
-    """
-    logger.debug(f"Loading pickled WHO data from {path}")
-    try:
-        return pd.read_pickle(path)
-    except Exception:
-        logger.exception(f"Could not load pickled data from {path}")
+            for trial in tqdm(
+                    csv.reader(trials),
+                    desc="Reading CSV WHO data",
+                    total=len(trials), unit='trials'
+            ):
+                trial_id = trial[0].strip()
+                trial_id = trial_id.replace('\ufeff', '')
+                for p, prefix in PREFIXES.items():
+                    if trial_id.startswith(p) or trial_id.startswith(p.lower()):
+                        break
+                else:
+                    msg = f"could not identify {trial_id}"
+                    raise ValueError(msg)
+
+                if trial_id.startswith("EUCTR"):
+                    trial_id = trial_id.removeprefix("EUCTR")
+                    trial_id = "-".join(trial_id.split("-")[:3])
+
+                    # handling inconsistencies with ChiCTR trial IDs
+                if trial_id.lower().startswith("chictr-"):
+                    trial_id = "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
+
+                trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-")
+
+                with logging_redirect_tqdm():
+                    who_trial = WhoTrial(prefix, trial_id)
+
+                who_trial.title = make_str(trial[3])
+                who_trial.type = make_str(trial[18])
+                who_trial.design = makelist(trial[19], '.')
+                who_trial.conditions = [BioEntity(None, None, condition) for condition in makelist(trial[29], '.')]
+                who_trial.interventions = [BioEntity(None, None, intervention) for intervention in makelist(trial[30], ';')]
+                who_trial.primary_outcome = make_str(trial[36])
+                who_trial.secondary_outcome = make_str(trial[37])
+                who_trial.secondary_ids = make_str(trial[2])
+                self.raw_data.append(who_trial)
+        self.save_raw_data(self.raw_data)
+

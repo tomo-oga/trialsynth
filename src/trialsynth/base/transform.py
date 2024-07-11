@@ -79,8 +79,6 @@ class BaseTransformer:
         self.has_condition: list[str] = []
         self.has_intervention: list[str] = []
 
-
-
     @staticmethod
     def transform_title(trial: Trial):
         trial.title = trial.title.strip()
