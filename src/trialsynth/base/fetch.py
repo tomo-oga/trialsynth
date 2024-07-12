@@ -1,10 +1,5 @@
 import logging
-from pathlib import Path
-
-import pandas as pd
 import requests
-from tqdm import trange
-from typing import Optional
 
 import gzip
 
@@ -34,7 +29,7 @@ class BaseFetcher:
         """
         raise NotImplementedError("Must be defined in subclass")
 
-    def save_raw_data(self, save_flatfile=False):
+    def save_raw_data(self):
         logger.info(f'Pickling raw trial data to {self.config.raw_trial_path}')
         with gzip.open(self.config.raw_trial_path, 'wb') as file:
             pickle.dump(self.raw_data, file)

@@ -1,4 +1,3 @@
-from collections import defaultdict
 import csv
 import logging
 import gzip
@@ -23,7 +22,6 @@ class BaseStorer:
         self.edges_path = config.edges_path
         self.edges_sample_path = config.edges_sample_path
         self.config = config
-
 
     def save_node_data(self) -> None:
         """

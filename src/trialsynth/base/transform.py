@@ -1,11 +1,7 @@
-import pickle
-
 import pandas as pd
 from typing import Iterator, Optional
 from tqdm import tqdm
 from .models import Trial, Edge
-
-from bioregistry import curie_to_str
 
 from .config import BaseConfig
 
@@ -72,12 +68,6 @@ class BaseTransformer:
     def __init__(self, config: BaseConfig):
         self.config = config
         self.trials: list[Trial]
-        self.df = pd.DataFrame()
-
-        self.has_condition_trial_curie: list[str] = []
-        self.has_intervention_trial_curie: list[str] = []
-        self.has_condition: list[str] = []
-        self.has_intervention: list[str] = []
 
     @staticmethod
     def transform_title(trial: Trial):
