@@ -13,6 +13,35 @@ logger = logging.getLogger(__name__)
 
 
 class BaseProcessor:
+    """Processes registry data using Config, Fetcher, Storer, and Transformer objects.
+
+    Attributes
+    ----------
+    config : Config
+        User-mutable properties of registry data processing
+    fetcher : Fetcher
+        Fetches registry data from the REST API or a saved file
+    storer : Storer
+        Stores processed data to disk
+    transformer : Transformer
+        Transforms raw data into nodes and edges for a graph database
+    node_iterator : Callable
+        Method to generate nodes from the transformed data
+
+    edges : set
+        Edges between nodes
+
+    Parameters
+    ----------
+    config : Config
+        User-mutable properties of Clinicaltrials.gov data processing
+    fetcher : Fetcher
+        Fetches Clinicaltrials.gov data from the REST API or a saved file
+    storer : Storer
+        Stores processed data to disk
+    transformer : Transformer
+        Transforms raw data into nodes and edges for a graph database
+    """
     def __init__(
             self,
             config: BaseConfig,
@@ -28,12 +57,11 @@ class BaseProcessor:
         self.trials: list[Trial] = []
 
         # edge creation lists
-        self.has_condition_trial_curie: list[str] = []
-        self.has_intervention_trial_curie: list[str] = []
-        self.has_condition: list[str] = []
-        self.has_intervention: list[str] = []
+        self.edges = list[Edge]
 
-    def get_nodes(self) -> Iterator:
+    @property
+    def node_iterator(self) -> Iterator:
+        """Iterates over nodes in the registry data and yields them for processing."""
         curie_to_trial = {}
         yielded_nodes = set()
         for trial in tqdm(self.trials, total=len(self.trials)):
@@ -50,43 +78,32 @@ class BaseProcessor:
 
             curie_to_trial[curie] = trial
 
-            for condition in self.transform_conditions(trial):
+            for condition in trial.conditions:
                 if condition:
-                    self.has_condition_trial_curie.append(trial.id)
-                    self.has_condition.append(condition.curie)
                     if condition not in yielded_nodes:
                         yield condition
                         yielded_nodes.add(condition)
 
-            for intervention in self.transform_interventions(trial):
+            for intervention in trial.interventions:
                 if intervention:
-                    self.has_intervention_trial_curie.append(trial.id)
-                    self.has_intervention.append(intervention.curie)
                     if intervention not in yielded_nodes:
                         yield intervention
                         yielded_nodes.add(intervention)
 
-        for curie in set(self.has_condition_trial_curie) or set(self.has_intervention_trial_curie):
-            clinical_trial = curie_to_trial[curie]
-            if clinical_trial not in yielded_nodes:
-                yield clinical_trial
-                yielded_nodes.add(clinical_trial)
+        for trial in set(self.trials):
+            if trial not in yielded_nodes:
+                yield trial
+                yielded_nodes.add(trial)
 
-    def get_edges(self) -> Iterator:
-        added = set()
+    @property
+    def edge_iterator(self) -> Iterator:
+        """Iterates over edges in the registry data and yields them for processing."""
+        yielded_edge = set()
 
         # could be abstracted later to method for handling different edge types
-        for condition, trial in zip(self.has_condition, self.has_condition_trial_curie):
-            if (condition, trial) in added:
-                continue
-            added.add((condition, trial))
-            yield Edge(condition, trial, "has_condition")
-
-        added = set()
-        for intervention, trial in zip(self.has_intervention, self.has_intervention_trial_curie):
-            if (intervention, trial) in added:
-                continue
-            added.add((intervention, trial))
-            yield Edge(intervention, trial, "has_intervention")
+        for edge in self.edges:
+            if edge not in yielded_edge:
+                yield edge
+                yielded_edge.add(edge)
 
 

@@ -13,6 +13,18 @@ class SecondaryId:
     id: str
     curie: str
 
+    def __eq__(self, other):
+        if isinstance(other, SecondaryId):
+            return (
+                self.name_space == other.name_space and
+                self.id == other.id and
+                self.curie == other.curie
+            )
+        return False
+
+    def __hash__(self):
+        return hash((self.name_space, self.id, self.curie))
+
 
 class DesignInfo:
     purpose: str
@@ -20,19 +32,51 @@ class DesignInfo:
     masking: str
     assignment: str
 
+    def __eq__(self, other):
+        if isinstance(other, DesignInfo):
+            return(
+                self.purpose == other.purpose and
+                self.allocation == other.allocation and
+                self.masking == other.masking and
+                self.assignment == other.assignment
+            )
+        return False
+
+    def __hash__(self):
+        return hash((self.purpose, self.allocation, self.masking, self.assignment))
+
 
 class Outcome:
     measure: str
     time_frame: str
+
+    def __eq__(self, other):
+        if isinstance(other, Outcome):
+            return self.measure == other.measure and self.time_frame == other.time_frame
+        return False
+
+    def __hash__(self):
+        return hash((self.measure, self.time_frame))
 
 
 class Node:
     def __init__(self, ns: str, ns_id: str):
         self.ns: str = ns
         self.id: str = ns_id
-        self.is_standardized = False
+        self.is_standardized: bool = False
 
         self.curie: str = None
+
+    def __eq__(self, other):
+        if isinstance(other, Node):
+            return all(
+                getattr(self, attr) == getattr(other, attr)
+                for attr in vars(self)
+            )
+        return False
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, attr)) for attr in vars(self))
 
     def standardize(self, ns_priority: Optional[list] = None):
         """Standardizes namespace and identifier"""
@@ -84,5 +128,16 @@ class Edge:
             self.rel_type_curie = ''
         else:
             self.rel_type_curie = rel_type_to_curie[rel_type]
+
+    def __eq__(self, other):
+        if isinstance(other, Edge):
+            return all(
+                getattr(self, attr) == getattr(other, attr)
+                for attr in vars(self)
+            )
+        return False
+
+    def __hash__(self):
+        return hash(tuple(getattr(self, attr) for attr in vars(self)))
 
 
