@@ -22,7 +22,40 @@ class TrialSynthConfigError(Exception):
 
 class BaseConfig:
     """
-    User-mutable properties of a registry for data processing
+    User-mutable properties of a registry for data processing using ini files
+
+    Attributes
+    ----------
+    registry: str
+        The registry string associated for configuration
+    config_dict: dict
+        Maps configuration by key
+    data_dir: Path
+        The directory path to hold registry data
+    sample_dir: Path
+        The directory path that holds sample files
+    raw_data_path: Path
+        Pickled list of Trials from API response
+    processed_data_path: Path
+        Pickled list of Trials from transformation and processing of data (grounding)
+    node_types: list[str]
+        Types of nodes. Ex: "BioEntity"
+    node_types_to_paths dict
+        Maps node type to path for dumping node data by type
+    edges_path: Path
+        The path for dumping edge data
+    edges_sample_path: Path
+        Path for saving a sample of edge data for verification
+    api_url: str
+        The API to send a request
+    api_parameters: dict
+        Paramters to pass with the API request
+
+    Parameters
+    ----------
+    registry: str
+        The registry string associated with the configuration
+
     """
 
     def __init__(self, registry: str):
@@ -34,8 +67,7 @@ class BaseConfig:
         self.sample_dir: Path = self.data_dir.joinpath('samples')
 
         # file paths
-        self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_DATA'))
-        self.raw_trial_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_DATA'))
+        self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_DATA'))
         self.processed_data_path: Path = self.get_data_path(self.get_config('PROCESSED_DATA'))
 
         # get types of nodes from configuration file and create paths

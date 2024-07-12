@@ -63,5 +63,5 @@ class Fetcher(BaseFetcher):
                 who_trial.secondary_outcome = make_str(trial[37])
                 who_trial.secondary_ids = make_str(trial[2])
                 self.raw_data.append(who_trial)
-        self.save_raw_data(self.raw_data)
+        self.save_raw_data()
 
