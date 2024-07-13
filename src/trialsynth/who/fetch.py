@@ -10,7 +10,7 @@ from .config import Config
 from .trial_model import WhoTrial
 
 from .util import PREFIXES, makelist, make_str
-from ..base.models import BioEntity
+from ..base.models import BioEntity, Outcome, SecondaryId
 
 
 class Fetcher(BaseFetcher):
@@ -19,11 +19,11 @@ class Fetcher(BaseFetcher):
         self.config = config
 
     def get_api_data(self):
-        trial_path = self.config.raw_trial_path
+        trial_path = self.config.raw_data_path
         if trial_path.is_file():
             self.load_saved_data()
             return
-        path = self.config.raw_data_path
+        path = self.config.get_data_path('ICTRP.csv')
         with open(path, 'r') as file:
             trials = [trial for trial in file]
 
@@ -57,11 +57,11 @@ class Fetcher(BaseFetcher):
                 who_trial.title = make_str(trial[3])
                 who_trial.type = make_str(trial[18])
                 who_trial.design = makelist(trial[19], '.')
-                who_trial.conditions = [BioEntity(None, None, condition) for condition in makelist(trial[29], '.')]
-                who_trial.interventions = [BioEntity(None, None, intervention) for intervention in makelist(trial[30], ';')]
-                who_trial.primary_outcome = make_str(trial[36])
-                who_trial.secondary_outcome = make_str(trial[37])
-                who_trial.secondary_ids = make_str(trial[2])
+                who_trial.conditions = [BioEntity(term=condition) for condition in makelist(trial[29], '.')]
+                who_trial.interventions = [BioEntity(term=intervention) for intervention in makelist(trial[30], ';')]
+                who_trial.primary_outcome = Outcome(measure=make_str(trial[36]))
+                who_trial.secondary_outcome = Outcome(measure=make_str(trial[37]))
+                who_trial.secondary_ids = [SecondaryId(curie=curie) for curie in makelist(trial[2], ';')]
                 self.raw_data.append(who_trial)
         self.save_raw_data()
 

@@ -5,9 +5,11 @@ from tqdm import tqdm
 
 from .config import BaseConfig
 from .fetch import BaseFetcher
-from .models import Trial, Edge
+from .models import Trial, Edge, Node
 from .store import BaseStorer
 from .transform import BaseTransformer
+
+import gilda
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +58,43 @@ class BaseProcessor:
 
         self.trials: list[Trial] = []
 
-        # edge creation lists
-        self.edges = list[Edge]
+        self.nodes: list[Node] = []
+        self.edges: list[Node] = []
 
-    @property
+    def load_data(self):
+        self.fetcher.get_api_data()
+        self.trials = self.fetcher.raw_data
+
+    def set_nodes_and_edges(self):
+        logger.info("Generating nodes and edges")
+        self.set_nodes()
+        self.set_edges()
+
+    def set_edges(self):
+        edges = tqdm(
+            self.edge_iterator(),
+            desc="Edge generation",
+            unit_scale=True,
+            unit="edge"
+        )
+        for edge in edges:
+            self.edges.append(edge)
+
+    def set_nodes(self):
+        nodes = tqdm(
+            self.node_iterator(),
+            desc="Node generation",
+            unit_scale=True,
+            unit="node"
+        )
+        for node in nodes:
+            self.nodes.append(node)
+
     def node_iterator(self) -> Iterator:
         """Iterates over nodes in the registry data and yields them for processing."""
         curie_to_trial = {}
         yielded_nodes = set()
-        for trial in tqdm(self.trials, total=len(self.trials)):
+        for trial in self.trials:
             curie = trial.curie
 
             self.transformer.transform_title(trial)
@@ -95,7 +125,6 @@ class BaseProcessor:
                 yield trial
                 yielded_nodes.add(trial)
 
-    @property
     def edge_iterator(self) -> Iterator:
         """Iterates over edges in the registry data and yields them for processing."""
         yielded_edge = set()

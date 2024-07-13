@@ -43,9 +43,11 @@ class BaseFetcher:
         """
         raise NotImplementedError("Must be defined in subclass")
 
+        self.save_raw_data()
+
     def save_raw_data(self):
-        logger.info(f'Pickling raw trial data to {self.config.raw_trial_path}')
-        with gzip.open(self.config.raw_trial_path, 'wb') as file:
+        logger.info(f'Pickling raw trial data to {self.config.raw_data_path}')
+        with gzip.open(self.config.raw_data_path, 'wb') as file:
             pickle.dump(self.raw_data, file)
 
     def send_request(self) -> dict:
@@ -64,6 +66,6 @@ class BaseFetcher:
             raise
 
     def load_saved_data(self) -> list[Trial]:
-        logger.info(f"Loading saved data from {self.config.raw_trial_path}")
-        with gzip.open(self.config.raw_trial_path, 'r') as file:
+        logger.info(f"Loading saved data from {self.config.raw_data_path}. This may take a bit.")
+        with gzip.open(self.config.raw_data_path, 'r') as file:
             self.raw_data = pickle.load(file)

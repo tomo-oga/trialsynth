@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseStorer:
-    def __init__(self, node_iterator: Callable[[], Iterator], config: BaseConfig):
-        self.node_iterator = node_iterator
+    def __init__(self, config: BaseConfig):
         self.node_types = config.node_types
         self.node_types_to_paths = config.node_types_to_paths
         self.edges_path = config.edges_path
@@ -50,7 +49,7 @@ class BaseStorer:
             if isinstance(node, BioEntity):
                 nodes_by_type["BioEntity"].append(node)
         if ix == 0:
-            raise RuntimeError(f"No nodes were generated for {self.name}")
+            raise RuntimeError(f"No nodes were generated for {self.config.registry}")
         for node_type in nodes_by_type:
             nodes_path, nodes_indra_path, sample_path = self.node_types_to_paths.get(node_type)
             nodes = sorted(nodes_by_type[node_type], key=lambda x: x.curie)
@@ -108,6 +107,21 @@ class BaseStorer:
             # Write remaining nodes
             node_writer.writerows(node_rows)
 
+    def save_edge_data(self):
+        """Save edge data as compressed TSV file"""
+
+        edges = tqdm(
+            self.edge_iterator(),
+            desc="Generating edges",
+            unit="edge"
+        )
+        edge_data: list[Edge] = []
+
+        for edge in edges:
+            edge_data.append(edge)
+
+        self.dump_edges_to_path(edge_data)
+
     def dump_edges_to_path(self, rels: list[Edge], write_mode="wt"):
         """
         Save edge data to disk as a compressed TSV file.
@@ -115,7 +129,7 @@ class BaseStorer:
         Parameters
         ----------
         rels : list
-            List of edges to save
+            The list of edges to save
         write_mode : str
             Write mode for the file. Default: 'wt'
         """
@@ -136,7 +150,7 @@ class BaseStorer:
                 rel.rel_type_curie,
                 self.config.registry
             )
-            for rel in tqdm(rels, desc="Edges", unit_scale=True)
+            for rel in tqdm(rels, desc="Edge serialization", unit="edge")
         )
 
         with gzip.open(self.edges_path, mode=write_mode) as edge_file:

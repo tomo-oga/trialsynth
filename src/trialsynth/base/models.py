@@ -13,12 +13,17 @@ class SecondaryId:
     id: str
     curie: str
 
+    def __init__(self, name_space: str = '', id: str = '', curie: str = ''):
+        self.name_space = name_space
+        self.id = id
+        self.curie = curie
+
     def __eq__(self, other):
         if isinstance(other, SecondaryId):
             return (
-                self.name_space == other.name_space and
-                self.id == other.id and
-                self.curie == other.curie
+                    self.name_space == other.name_space and
+                    self.id == other.id and
+                    self.curie == other.curie
             )
         return False
 
@@ -34,11 +39,11 @@ class DesignInfo:
 
     def __eq__(self, other):
         if isinstance(other, DesignInfo):
-            return(
-                self.purpose == other.purpose and
-                self.allocation == other.allocation and
-                self.masking == other.masking and
-                self.assignment == other.assignment
+            return (
+                    self.purpose == other.purpose and
+                    self.allocation == other.allocation and
+                    self.masking == other.masking and
+                    self.assignment == other.assignment
             )
         return False
 
@@ -47,8 +52,9 @@ class DesignInfo:
 
 
 class Outcome:
-    measure: str
-    time_frame: str
+    def __init__(self, measure: str = '', time_frame: str = ''):
+        self.measure = measure
+        self.time_frame = time_frame
 
     def __eq__(self, other):
         if isinstance(other, Outcome):
@@ -67,26 +73,16 @@ class Node:
 
         self.curie: str = None
 
-    def __eq__(self, other):
-        if isinstance(other, Node):
-            return all(
-                getattr(self, attr) == getattr(other, attr)
-                for attr in vars(self)
-            )
-        return False
-
-    def __hash__(self):
-        return hash(tuple(getattr(self, attr)) for attr in vars(self))
-
     def standardize(self, ns_priority: Optional[list] = None):
         """Standardizes namespace and identifier"""
 
         standard_name, db_refs = standardize_name_db_refs({self.ns: self.id}, ns_order=ns_priority)
-        db_ns, db_id = get_grounding(db_refs)
-        if db_ns is not None and db_id is not None:
-            self.ns = db_ns
-            self.id = db_id
-            self.is_standardized = True
+        db_ns, db_id = get_grounding(db_refs, ns_order=ns_priority)
+        if db_ns is None or db_id is None:
+            return
+        self.ns = db_ns
+        self.id = db_id
+        self.is_standardized = True
 
     def create_curie(self):
         if not self.is_standardized:
@@ -106,11 +102,27 @@ class Trial(Node):
         self.secondary_outcome: Union[Outcome, str] = list()
         self.secondary_ids: Union[list[SecondaryId], list[str]] = list()
 
+    def __eq__(self, other):
+        if isinstance(other, Trial):
+            return self.curie == other.curie
+        return False
+
+    def __hash__(self):
+        return hash(self.curie)
+
 
 class BioEntity(Node):
-    def __init__(self, ns: str, id: str, term: str):
+    def __init__(self, ns: str = '', id: str = '', term: str = ''):
         super(BioEntity, self).__init__(ns, id)
         self.term = term
+
+    def __eq__(self, other):
+        if isinstance(other, BioEntity):
+            return self.curie == other.curie
+        return False
+
+    def __hash__(self):
+        return hash(self.curie)
 
 
 class Edge:
@@ -139,5 +151,3 @@ class Edge:
 
     def __hash__(self):
         return hash(tuple(getattr(self, attr) for attr in vars(self)))
-
-

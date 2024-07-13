@@ -1,13 +1,12 @@
-from .fetch import Fetcher
-from .store import Storer
-from .config import Config
-from .transform import Transformer
-
+from .process import Processor
+import cProfile
+import pstats
 
 def main():
-    config = Config()
-    fetch = Fetcher(config=config)
-    fetch.get_api_data()
+    processor = Processor()
+
+    processor.load_data()
+    processor.set_nodes_and_edges()
 
 if __name__ == '__main__':
-    main()
+        main()

@@ -8,9 +8,13 @@ from .transform import Transformer
 
 class Processor(BaseProcessor):
     def __init__(self):
+        config = Config()
         super().__init__(
-            config=Config(),
-            fetcher=Fetcher(),
-            storer=Storer(),
-            transformer=Transformer
+            config=config,
+            fetcher=Fetcher(config),
+            storer=Storer(config),
+            transformer=Transformer(config)
         )
+
+
+
