@@ -1,7 +1,9 @@
 import logging
-from typing import Iterator
+from typing import Iterator, Tuple, Callable
 
+import pandas as pd
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from .config import BaseConfig
 from .fetch import BaseFetcher
@@ -44,19 +46,29 @@ class BaseProcessor:
     transformer : Transformer
         Transforms raw data into nodes and edges for a graph database
     """
+
     def __init__(
             self,
             config: BaseConfig,
             fetcher: BaseFetcher,
-            storer: BaseStorer,
-            transformer: BaseTransformer
+            conditions_grounder: Callable,
+            interventions_grounder: Callable
     ):
         self.config = config
         self.fetcher = fetcher
-        self.storer = storer
-        self.transformer = transformer
 
         self.trials: list[Trial] = []
+
+        self.curie_to_trial_info: dict = {}
+
+        self.conditions_grounder: Callable = conditions_grounder
+        self.interventions_grounder: Callable = interventions_grounder
+
+        self.transformer = BaseTransformer(self.config)
+        self.storer = BaseStorer(self.config)
+
+        self.conditions: pd.DataFrame = None
+        self.interventions: pd.DataFrame = None
 
         self.nodes: list[Node] = []
         self.edges: list[Node] = []
@@ -64,6 +76,52 @@ class BaseProcessor:
     def load_data(self):
         self.fetcher.get_api_data()
         self.trials = self.fetcher.raw_data
+        self.process_data()
+
+    def process_data(self):
+        conditions = []
+        interventions = []
+        iterated_trials = set()
+
+        for trial in tqdm(self.trials, desc='Processing trial data', total=len(self.trials), unit='trial'):
+
+            # should be refactored later to accept various connection types. i.e. criteria
+            conditions.extend([(trial.curie, trial.title, condition.term, condition.curie) for condition in trial.conditions])
+            interventions.extend([(trial.curie, trial.title, intervention.term, intervention.curie) for intervention in trial.interventions])
+
+            if trial.curie not in iterated_trials:
+                iterated_trials.add(trial.curie)
+                self.curie_to_trial_info[trial.curie] = self.transformer.transform_trial_data(trial)
+
+        conditions = pd.DataFrame(conditions, columns=['trial_id', 'trial_title', 'term', 'curie'])
+        interventions = pd.DataFrame(interventions, columns=['trial_id', 'trial_title', 'term', 'curie'])
+
+        tqdm.pandas(desc="Grounding conditions", unit='condition', unit_scale=True)
+
+        name_spaces = ["MESH", "doid", "mondo", "go"]
+
+        iter_conditions = tqdm(conditions.iterrows(), total=len(conditions), desc='Grounding conditions', unit='condition', unit_scale=True)
+
+        for _, condition in iter_conditions:
+            with logging_redirect_tqdm():
+                grounded = gilda.ground(condition['term'], namespaces=name_spaces, context=condition['trial_title'])
+                if len(grounded) == 0:
+                    annotations=gilda.annotate(condition['term'], namespaces=name_spaces, context_text=condition['trial_title'])
+                    if len(annotations) == 0:
+                        condition['curie'] = condition['curie']
+
+                    for ix, (term, match, *_) in enumerate(annotations):
+                        new_condition = condition.copy()
+                        new_condition['term'] = term
+                        new_condition['curie'] = match.term.get_curie()
+                        if ix == 0:
+                            condition.update(new_condition)
+                        else:
+                            conditions.loc[len(conditions)] = new_condition
+                else:
+                    condition['curie'] = grounded[0].term.get_curie()
+        tqdm.pandas(desc="Grounding interventions")
+        interventions['curie'] = interventions.progress_apply(self.interventions_grounder, axis=1)
 
     def set_nodes_and_edges(self):
         logger.info("Generating nodes and edges")
@@ -134,5 +192,3 @@ class BaseProcessor:
             if edge not in yielded_edge:
                 yield edge
                 yielded_edge.add(edge)
-
-

@@ -18,17 +18,14 @@ class Transformer(BaseTransformer):
             with logging_redirect_tqdm():
                 # have gilda try and ground condition
                 annotations = gilda.annotate(condition.term)
-                for annotation in annotations:
-                    top_match = annotation.matches[0]
-                    condition = BioEntity(top_match.term.ns,
-                                          top_match.term.id,
-                                          annotation.text)
-                    condition.standardize(name_spaces)
-                    if not condition.is_standardized:
+
+                for _text, match, _, _ in annotations:
+                    if match.term.db not in name_spaces:
                         continue
-                    condition.create_curie()
+                    condition = BioEntity(match.term.db, match.term.id, _text)
                     conditions.append(condition)
         trial.conditions = conditions
+        return trial.conditions
 
     @staticmethod
     def transform_interventions(trial: Trial):
@@ -53,6 +50,7 @@ class Transformer(BaseTransformer):
                         intervention.create_curie()
                         interventions.append(intervention)
         trial.interventions = interventions
+        return trial.interventions
 
     @staticmethod
     def transform_design(trial: Trial):
@@ -70,5 +68,6 @@ class Transformer(BaseTransformer):
             transformed_design.assignment = _clean_design(design, "assignment")
 
         trial.design = transformed_design
+        return trial.design
 
 

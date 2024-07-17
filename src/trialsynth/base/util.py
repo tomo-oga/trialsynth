@@ -1,6 +1,11 @@
-from typing import Optional
+from typing import Optional, Callable
 import gilda
 from indra.databases import mesh_client
+
+
+def must_override(method: Callable):
+    method._must_override=True
+    return method
 
 
 def list_from_string(data: str, delimiter: str = ",") -> list[str]:

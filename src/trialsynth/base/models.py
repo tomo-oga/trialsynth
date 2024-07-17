@@ -32,10 +32,14 @@ class SecondaryId:
 
 
 class DesignInfo:
-    purpose: str
-    allocation: str
-    masking: str
-    assignment: str
+
+    def __init__(self, purpose=None, allocation=None, masking=None, assignment=None, fallback: str=None):
+        self.purpose: str = purpose
+        self.allocation: str = allocation
+        self.masking: str = masking
+        self.assignment: str = assignment
+        self.fallback: str = fallback
+
 
     def __eq__(self, other):
         if isinstance(other, DesignInfo):
@@ -69,25 +73,10 @@ class Node:
     def __init__(self, ns: str, ns_id: str):
         self.ns: str = ns
         self.id: str = ns_id
-        self.is_standardized: bool = False
-
-        self.curie: str = None
-
-    def standardize(self, ns_priority: Optional[list] = None):
-        """Standardizes namespace and identifier"""
-
-        standard_name, db_refs = standardize_name_db_refs({self.ns: self.id}, ns_order=ns_priority)
-        db_ns, db_id = get_grounding(db_refs, ns_order=ns_priority)
-        if db_ns is None or db_id is None:
-            return
-        self.ns = db_ns
-        self.id = db_id
-        self.is_standardized = True
-
-    def create_curie(self):
-        if not self.is_standardized:
-            logger.warning(f'Attempting curie creation with non standardized namespace and id: {self.ns}:{self.id}')
-        self.curie = curie_to_str(self.ns, self.id)
+        if ns and ns_id:
+            self.curie: str = curie_to_str(self.ns, self.id)
+        else:
+            self.curie: str = None
 
 
 class Trial(Node):
