@@ -18,9 +18,11 @@ class Transformer(BaseTransformer):
             with logging_redirect_tqdm():
                 # have gilda try and ground condition
                 annotations = gilda.annotate(condition.term)
-                for _text, matches, _, _ in annotations:
-                    condition = BioEntity(matches[0].term.ns,
-                                          matches[0].term.id, _text)
+                for annotation in annotations:
+                    top_match = annotation.matches[0]
+                    condition = BioEntity(top_match.term.ns,
+                                          top_match.term.id,
+                                          annotation.text)
                     condition.standardize(name_spaces)
                     if not condition.is_standardized:
                         continue
