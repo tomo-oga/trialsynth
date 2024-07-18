@@ -75,8 +75,8 @@ class Fetcher(BaseFetcher):
 
                 if who_trial.design is None:
                     who_trial.design = DesignInfo(fallback=trial[19])
-                who_trial.conditions = [BioEntity(term=condition) for condition in makelist(trial[29], ';')]
-                who_trial.interventions = [BioEntity(term=intervention) for intervention in makelist(trial[30], ';')]
+                who_trial.conditions = [BioEntity(term=condition, origin=who_trial.curie) for condition in makelist(trial[29], ';')]
+                who_trial.interventions = [BioEntity(term=intervention, origin=who_trial.curie) for intervention in makelist(trial[30], ';')]
                 who_trial.primary_outcome = Outcome(measure=make_str(trial[36]))
                 who_trial.secondary_outcome = Outcome(measure=make_str(trial[37]))
                 who_trial.secondary_ids = [SecondaryId(curie=curie) for curie in makelist(trial[2], ';')]

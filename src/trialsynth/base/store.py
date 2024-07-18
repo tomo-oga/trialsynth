@@ -3,7 +3,7 @@ import logging
 import gzip
 from pathlib import Path
 import pickle
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Tuple
 
 from .config import BaseConfig
 from .models import Trial, BioEntity, Edge
@@ -22,6 +22,48 @@ class BaseStorer:
         self.edges_sample_path = config.edges_sample_path
         self.config = config
 
+    def save_trial_data(self, data: list[Tuple], write_sample=True) -> None:
+        """Save trial data from a list of tuples as compressed TSV
+
+        Parameters
+        ----------
+        data: list[Tuple]
+            Trial data flattened into tuples
+        """
+        headers = ['title', 'type', 'design', 'conditions', 'interventions',
+                   'primary_outcome', 'secondary_outcome', 'secondary_ids']
+        path = self.config.processed_data_path
+
+        trials = (
+            (
+                trial[0],
+                trial[1],
+                trial[2],
+                ','.join(trial[3]),
+                ','.join(trial[4]),
+                trial[5],
+                trial[6],
+                ','.join(trial[7])
+            )
+            for trial in tqdm(data, desc=f'Serializing and storing trial data to {path}', unit="trial", unit_scale=True)
+        )
+
+        with gzip.open(path, mode='wt'):
+            csv_writer = csv.writer(path, delimiter='\t')
+            csv_writer.writerow(headers)
+            if write_sample:
+                with self.config.processed_sample_path.open('w') as sample_file:
+                    logger.info(f'Saving sample trial data to {sample_file}')
+
+                    sample_writer = csv.writer(sample_file, delimiter='\t')
+                    sample_writer.writerow(headers)
+                    for _, trial in tqdm(zip(range(self.config.num_sample_entries), trials), desc="Writing samples"):
+                        sample_writer.writerow(trial)
+                        csv_writer(trial)
+            csv_writer.writerows(trials)
+
+    def save_bioentities(self, entities: list[Tuple]):
+        headers = ['origin', 'curie', 'term']
     def save_node_data(self) -> None:
         """
         Save node data to disk as compressed TSV files

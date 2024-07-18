@@ -68,6 +68,9 @@ class BaseConfig:
         # file paths
         self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_DATA'))
         self.processed_data_path: Path = self.get_data_path(self.get_config('PROCESSED_DATA'))
+        self.processed_sample_path: Path = self.get_data_path(self.get_config('PROCESSED_SAMPLE_FILE'))
+
+        self.num_sample_entries = int(self.get_config('NUM_SAMPLE_ENTRIES'))
 
         # get types of nodes from configuration file and create paths
         self.node_types: list[str] = list_from_string(self.get_config('NODE_TYPES'))

@@ -101,9 +101,10 @@ class Trial(Node):
 
 
 class BioEntity(Node):
-    def __init__(self, ns: str = '', id: str = '', term: str = ''):
+    def __init__(self, ns: str = '', id: str = '', term: str = '', origin: str = ''):
         super(BioEntity, self).__init__(ns, id)
         self.term = term
+        self.origin = origin
 
     def __eq__(self, other):
         if isinstance(other, BioEntity):

@@ -5,8 +5,7 @@ import pstats
 def main():
     processor = Processor()
 
-    processor.load_data()
-    processor.set_nodes_and_edges()
+    processor.run()
 
 if __name__ == '__main__':
         main()

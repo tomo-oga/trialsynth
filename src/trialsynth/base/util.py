@@ -1,7 +1,10 @@
-from typing import Optional, Callable
+from typing import Optional, Callable, Iterator, Tuple
 import gilda
 from indra.databases import mesh_client
 
+from src.trialsynth.base.models import BioEntity
+
+Grounder = Callable[[BioEntity, list[str], str], Iterator[BioEntity]]
 
 def must_override(method: Callable):
     method._must_override=True

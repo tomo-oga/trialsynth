@@ -1,9 +1,13 @@
-from typing import Tuple
+from typing import Tuple, Iterator
 
 import pandas as pd
-from .models import Trial
+import copy
+
+from .models import Trial, BioEntity
 
 from .config import BaseConfig
+
+import gilda
 
 def or_na(x):
     """Return None if x is NaN, otherwise return x"""
@@ -19,8 +23,8 @@ class BaseTransformer:
     def __init__(self, config: BaseConfig):
         self.config = config
 
-    def transform_trial_data(self, trial: Trial) -> Tuple:
-        """Transforms trial data into strings, and returns a tuple of transformed data.
+    def flatten_trial_data(self, trial: Trial) -> Tuple:
+        """Flattens trial data into a tuple of strings.
 
         Parameters
         ----------
@@ -75,6 +79,10 @@ class BaseTransformer:
     def transform_interventions(trial: Trial) -> list[str]:
         trial.interventions = [intervention.curie for intervention in trial.interventions]
         return trial.interventions
+
+    @staticmethod
+    def flatten_bioentity(entity: BioEntity):
+        return entity.origin, entity.curie, entity.term
 
     @staticmethod
     def transform_primary_outcome(trial: Trial) -> list[str]:

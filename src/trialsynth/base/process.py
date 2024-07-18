@@ -1,15 +1,15 @@
 import logging
-from typing import Iterator, Tuple, Callable
+from typing import Iterator, Tuple, Callable, Dict, Optional
 
-import pandas as pd
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from .config import BaseConfig
 from .fetch import BaseFetcher
-from .models import Trial, Edge, Node
+from .models import Trial, Edge, Node, BioEntity
 from .store import BaseStorer
 from .transform import BaseTransformer
+from .util import Grounder
 
 import gilda
 
@@ -51,77 +51,90 @@ class BaseProcessor:
             self,
             config: BaseConfig,
             fetcher: BaseFetcher,
-            conditions_grounder: Callable,
-            interventions_grounder: Callable
+            conditions_grounder: Grounder,
+            interventions_grounder: Grounder,
+            condition_namespaces: Optional[list[str]] = None,
+            intervention_namespaces: Optional[list[str]] = None,
     ):
         self.config = config
         self.fetcher = fetcher
 
         self.trials: list[Trial] = []
 
-        self.curie_to_trial_info: dict = {}
+        self.curie_to_trial: Dict[str, Trial] = {}
 
-        self.conditions_grounder: Callable = conditions_grounder
-        self.interventions_grounder: Callable = interventions_grounder
+        self.conditions_grounder: Grounder = conditions_grounder
+        self.interventions_grounder: Grounder = interventions_grounder
+
+        self.condition_namespaces: Optional[list[str]] = condition_namespaces
+        self.intervention_namespaces: Optional[list[str]] = intervention_namespaces
 
         self.transformer = BaseTransformer(self.config)
         self.storer = BaseStorer(self.config)
 
-        self.conditions: pd.DataFrame = None
-        self.interventions: pd.DataFrame = None
+        self.conditions: list[BioEntity] = []
+        self.interventions: list[BioEntity] = []
 
         self.nodes: list[Node] = []
         self.edges: list[Node] = []
 
-    def load_data(self):
+    def run(self):
         self.fetcher.get_api_data()
         self.trials = self.fetcher.raw_data
-        self.process_data()
+        self.get_bioentities()
+        self.process_bioentities()
 
-    def process_data(self):
-        conditions = []
-        interventions = []
+    def save_data(self):
+        data = [self.transformer.flatten_trial_data(trial) for trial in self.trials]
+        self.storer.save_trial_data(data)
+
+    def get_bioentities(self):
         iterated_trials = set()
 
-        for trial in tqdm(self.trials, desc='Processing trial data', total=len(self.trials), unit='trial'):
+        for trial in tqdm(self.trials, desc='Pulling BioEntities from Trials', total=len(self.trials), unit='trial'):
 
             # should be refactored later to accept various connection types. i.e. criteria
-            conditions.extend([(trial.curie, trial.title, condition.term, condition.curie) for condition in trial.conditions])
-            interventions.extend([(trial.curie, trial.title, intervention.term, intervention.curie) for intervention in trial.interventions])
+            self.conditions.extend([condition for condition in trial.conditions])
+            self.interventions.extend([intervention for intervention in trial.interventions])
 
             if trial.curie not in iterated_trials:
                 iterated_trials.add(trial.curie)
-                self.curie_to_trial_info[trial.curie] = self.transformer.transform_trial_data(trial)
+                self.curie_to_trial[trial.curie] = trial
 
-        conditions = pd.DataFrame(conditions, columns=['trial_id', 'trial_title', 'term', 'curie'])
-        interventions = pd.DataFrame(interventions, columns=['trial_id', 'trial_title', 'term', 'curie'])
+    def process_bioentities(self):
+        logger.info('Warming up grounder...')
+        for _ in range(5):
+            gilda.ground("stuff")
+        logger.info('Done.')
+        self.process_conditions()
+        self.process_interventions()
 
-        tqdm.pandas(desc="Grounding conditions", unit='condition', unit_scale=True)
+    def process_conditions(self):
+        grounded_conditions = []
 
-        name_spaces = ["MESH", "doid", "mondo", "go"]
+        condition_iter = tqdm(self.conditions, desc="Grounding Conditions", unit="condition", unit_scale=True)
 
-        iter_conditions = tqdm(conditions.iterrows(), total=len(conditions), desc='Grounding conditions', unit='condition', unit_scale=True)
-
-        for _, condition in iter_conditions:
+        for condition in condition_iter:
             with logging_redirect_tqdm():
-                grounded = gilda.ground(condition['term'], namespaces=name_spaces, context=condition['trial_title'])
-                if len(grounded) == 0:
-                    annotations=gilda.annotate(condition['term'], namespaces=name_spaces, context_text=condition['trial_title'])
-                    if len(annotations) == 0:
-                        condition['curie'] = condition['curie']
+                grounded_conditions.extend(self.conditions_grounder(condition, namespaces=self.condition_namespaces,
+                                                                    trial_title=self.curie_to_trial[condition.origin].title))
+        self.conditions = grounded_conditions
 
-                    for ix, (term, match, *_) in enumerate(annotations):
-                        new_condition = condition.copy()
-                        new_condition['term'] = term
-                        new_condition['curie'] = match.term.get_curie()
-                        if ix == 0:
-                            condition.update(new_condition)
-                        else:
-                            conditions.loc[len(conditions)] = new_condition
-                else:
-                    condition['curie'] = grounded[0].term.get_curie()
-        tqdm.pandas(desc="Grounding interventions")
-        interventions['curie'] = interventions.progress_apply(self.interventions_grounder, axis=1)
+    def process_interventions(self):
+        grounded_interventions = []
+
+        intervention_iter = tqdm(self.interventions, desc="Grounding Interventions", unit="intervention", unit_scale=True)
+
+        for intervention in intervention_iter:
+            with logging_redirect_tqdm():
+                grounded_interventions.extend(
+                    self.interventions_grounder(intervention,
+                                                namespaces=self.intervention_namespaces,
+                                                trial_title=self.curie_to_trial[intervention.origin].title)
+                )
+        self.interventions=grounded_interventions
+
+
 
     def set_nodes_and_edges(self):
         logger.info("Generating nodes and edges")
