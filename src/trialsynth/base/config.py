@@ -67,6 +67,7 @@ class BaseConfig:
 
         # file paths
         self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_DATA'))
+        self.raw_data_flatfile_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_FLATFILE'))
         self.processed_data_path: Path = self.get_data_path(self.get_config('PROCESSED_DATA'))
         self.processed_sample_path: Path = self.get_data_path(self.get_config('PROCESSED_SAMPLE_FILE'))
 

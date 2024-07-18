@@ -72,12 +72,12 @@ class BaseTransformer:
 
     @staticmethod
     def transform_conditions(trial: Trial) -> list[str]:
-        trial.conditions = [condition.curie for condition in trial.conditions]
+        trial.conditions = [condition.curie for condition in trial.conditions if condition]
         return trial.conditions
 
     @staticmethod
     def transform_interventions(trial: Trial) -> list[str]:
-        trial.interventions = [intervention.curie for intervention in trial.interventions]
+        trial.interventions = [intervention.curie for intervention in trial.interventions if intervention]
         return trial.interventions
 
     @staticmethod
