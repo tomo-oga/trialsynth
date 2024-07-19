@@ -1,7 +1,5 @@
-from typing import Union, Optional
+from typing import Union
 import logging
-from indra.ontology.standardize import standardize_name_db_refs
-from indra.statements.agent import get_grounding
 
 from bioregistry import curie_to_str
 
