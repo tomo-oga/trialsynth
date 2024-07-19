@@ -3,9 +3,8 @@ import logging
 from pathlib import Path
 import os
 
-from .util import list_from_string
-
 import shutil
+from typing import Union
 
 if sys.version_info[0] == 3:
     from configparser import RawConfigParser
@@ -19,47 +18,53 @@ class TrialSynthConfigError(Exception):
     pass
 
 
-class BaseConfig:
-    """
-    User-mutable properties of a registry for data processing using ini files
-
-    Attributes
-    ----------
-    registry: str
-        The registry string associated for configuration
-    config_dict: dict
-        Maps configuration by key
-    data_dir: Path
-        The directory path to hold registry data
-    sample_dir: Path
-        The directory path that holds sample files
-    raw_data_path: Path
-        Pickled list of Trials from API response
-    processed_data_path: Path
-        Pickled list of Trials from transformation and processing of data (grounding)
-    node_types: list[str]
-        Types of nodes. Ex: "BioEntity"
-    node_types_to_paths dict
-        Maps node type to path for dumping node data by type
-    edges_path: Path
-        The path for dumping edge data
-    edges_sample_path: Path
-        Path for saving a sample of edge data for verification
-    api_url: str
-        The API to send a request
-    api_parameters: dict
-        Paramters to pass with the API request
+class Config:
+    """User-mutable properties of a registry for data processing.
 
     Parameters
     ----------
-    registry: str
-        The registry string associated with the configuration
+    registry : str
+        The name of the registry for which the configuration is being created.
 
+    Attributes
+    ----------
+    registry : str
+        The name of the registry for which the configuration is being created.
+    config_dict : dict
+        The configuration dictionary.
+    store_samples : bool
+        Whether to store samples of the data.
+    data_dir : Path
+        The directory where the data is stored.
+    sample_dir : Path
+        The directory where the samples are stored.
+    raw_data_path : Path
+        The path to the raw data file stored as a list of :class:`Trial` objects.
+    edges_path : Path
+        The path to the edges file stored as a compressed TSV file.
+    edges_sample_path : Path
+        The path to the sample edges file stored as a TSV file.
+    bio_entities_path : Path
+        The path to the bioentity nodes file stored as a compressed TSV file.
+    bio_entities_sample_path : Path
+        The path to the sample bioentity nodes file stored as a TSV file.
+    trials_path : Path
+        The path to the trial nodes file stored as a compressed TSV file.
+    trials_sample_path : Path
+        The path to the sample trial nodes file stored as a TSV file.
+    num_sample_entries : int
+        The number of sample entries to store.
+    api_url : str
+        The URL of the API endpoint.
+    api_parameters : dict
+        The parameters to send with the API request.
     """
 
     def __init__(self, registry: str):
         self.registry: str = registry
         self.config_dict: dict = self._create_config_dict()
+
+        self.store_samples: bool = self.get_config('STORE_SAMPLES')
 
         # directories
         self.data_dir: Path = Path(self.get_config('DATA_DIR'))
@@ -67,25 +72,17 @@ class BaseConfig:
 
         # file paths
         self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_DATA'))
-        self.raw_data_flatfile_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_FLATFILE'))
-        self.processed_data_path: Path = self.get_data_path(self.get_config('PROCESSED_DATA'))
-        self.processed_sample_path: Path = self.get_data_path(self.get_config('PROCESSED_SAMPLE_FILE'))
-
-        self.num_sample_entries = int(self.get_config('NUM_SAMPLE_ENTRIES'))
-
-        # get types of nodes from configuration file and create paths
-        self.node_types: list[str] = list_from_string(self.get_config('NODE_TYPES'))
-        self.node_types_to_paths: dict = {
-            node_type: (
-                self.path_from_type_template(self.data_dir, 'NODES_FILE_TEMPLATE', node_type),
-                self.path_from_type_template(self.data_dir, 'NODES_PICKLE_TEMPLATE', node_type),
-                self.path_from_type_template(self.sample_dir, 'NODES_SAMPLE_TEMPLATE', node_type)
-            )
-            for node_type in self.node_types
-        }
 
         self.edges_path: Path = self.get_data_path(self.get_config('EDGES_FILE'))
-        self.edges_sample_path: Path = Path(self.sample_dir, self.get_config('EDGES_SAMPLE_FILE'))
+        self.edges_sample_path: Path = self.get_sample_path(self.get_config('EDGES_SAMPLE_FILE'))
+
+        self.bio_entities_path = self.get_data_path(self.get_config('BIOENTITY_NODES_FILE'))
+        self.bio_entities_sample_path = self.get_sample_path(self.get_config('BIOENTITY_SAMPLE_FILE'))
+
+        self.trials_path = self.get_data_path(self.get_config('TRIAL_NODES_FILE'))
+        self.trials_sample_path = self.get_sample_path(self.get_config('TRIAL_SAMPLE_FILE'))
+
+        self.num_sample_entries = int(self.get_config('NUM_SAMPLE_ENTRIES'))
 
         self.api_url: str = self.get_config('API_URL')
         self.api_parameters = self.get_config('API_FIELDS')
@@ -161,15 +158,12 @@ class BaseConfig:
         config_dict['SOURCE_KEY'] = self.registry
         return config_dict
 
-    def get_config(self, key: str, failure_ok: bool = True):
-        """
-        Get a configuration value from the environment or config file.
+    def get_config(self, key: str, failure_ok: bool = True) -> Union[Path, str, int]:
+        """Get a configuration value from the environment or config file.
         Parameters
         ----------
         key : str
             The key for the configuration value
-        config_dict : dict
-            The configuration dictionary
         failure_ok : bool
             If False and the configuration is missing, an WhoConfigError is
                 raised. If True, None is returned and no error is raised in case
@@ -177,9 +171,14 @@ class BaseConfig:
 
         Returns
         -------
-        value : str or None
+        Union[Path, str, int]
             The configuration value or None if the configuration value doesn't
             exist and failure_ok is set to True.
+
+        Raises
+        ------
+        TrialSynthConfigError
+            If the configuration value is missing and failure_ok is set to False.
         """
 
         err_msg = "Key %s not in environment or config file." % key
@@ -199,7 +198,30 @@ class BaseConfig:
             return None
 
     def get_data_path(self, filename: str) -> Path:
+        """Get the full path to a file in the data directory
+        Parameters
+        ----------
+        filename: str
+            The name of the file to get the path for
+
+        Returns
+        -------
+        Path
+            The full path to the file in the data directory
+
+        """
         return Path(self.data_dir, filename)
 
-    def path_from_type_template(self, directory: Path, template: str, node_type: str) -> Path:
-        return Path(directory, self.get_config(template).replace('[TYPE]', node_type))
+    def get_sample_path(self, filename: str) -> Path:
+        """Get the full path to a file in the sample directory
+        Parameters
+        ----------
+        filename: str
+            The name of the file to get the path for
+
+        Returns
+        -------
+        Path
+            The full path to the file in the sample directory
+        """
+        return Path(self.sample_dir, filename)
