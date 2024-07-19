@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import logging
 
 from bioregistry import curie_to_str
@@ -7,6 +7,17 @@ logger = logging.getLogger(__name__)
 
 
 class SecondaryId:
+    """Secondary ID for a trial
+
+    Attributes
+    ----------
+    name_space : str
+        The namespace of the secondary ID
+    id : str
+        The ID of the secondary ID
+    curie : str
+        The CURIE of the secondary ID
+    """
     name_space: str
     id: str
     curie: str
@@ -30,14 +41,40 @@ class SecondaryId:
 
 
 class DesignInfo:
+    """Design information for a trial
 
-    def __init__(self, purpose=None, allocation=None, masking=None, assignment=None, fallback: str=None):
+    Attributes
+    ----------
+    purpose : str
+        The purpose of the design
+    allocation : str
+        The allocation of the design
+    masking : str
+        The masking of the design
+    assignment : str
+        The assignment of the design
+    fallback : Optional[str]
+        The fallback design information, if the design information is not in the expected format
+
+    Parameters
+    ----------
+    purpose : str
+        The purpose of the design
+    allocation : str
+        The allocation of the design
+    masking : str
+        The masking of the design
+    assignment : str
+        The assignment of the design
+    fallback : Optional[str]
+        The fallback design information, if the design information is not in the expected format
+    """
+    def __init__(self, purpose=None, allocation=None, masking=None, assignment=None, fallback: Optional[str] = None):
         self.purpose: str = purpose
         self.allocation: str = allocation
         self.masking: str = masking
         self.assignment: str = assignment
         self.fallback: str = fallback
-
 
     def __eq__(self, other):
         if isinstance(other, DesignInfo):
@@ -54,6 +91,22 @@ class DesignInfo:
 
 
 class Outcome:
+    """Outcome for a trial
+
+    Attributes
+    ----------
+    measure : str
+        The measure of the outcome
+    time_frame : str
+        The time frame of the outcome
+
+    Parameters
+    ----------
+    measure : str
+        The measure of the outcome
+    time_frame : str
+        The time frame of the outcome
+    """
     def __init__(self, measure: str = '', time_frame: str = ''):
         self.measure = measure
         self.time_frame = time_frame
@@ -68,9 +121,31 @@ class Outcome:
 
 
 class Node:
-    def __init__(self, ns: str, ns_id: str):
+    """Node for a trial or bioentity
+
+    Attributes
+    ----------
+    ns : str
+        The namespace of the node
+    id : str
+        The ID of the node
+    curie : str
+        The CURIE of the node
+    source : Optional[str]
+        The source registry of the node
+
+    Parameters
+    ----------
+    ns : Optional[str]
+        The namespace of the node
+    ns_id : Optional[str]
+        The ID of the node
+    """
+    def __init__(self, ns: Optional[str], ns_id: Optional[str]):
         self.ns: str = ns
         self.id: str = ns_id
+        self.source: Optional[str] = None
+
         if ns and ns_id:
             self.curie: str = curie_to_str(self.ns, self.id)
         else:
@@ -78,6 +153,42 @@ class Node:
 
 
 class Trial(Node):
+    """Holds information about a clinical trial
+
+    Attributes
+    ----------
+    ns: str
+        The namespace of the trial
+    id: str
+        The ID of the trial
+    curie: str
+        The CURIE of the trial
+    source: Optional[str]
+        The source registry of the trial
+    title: str
+        The title of the trial
+    type: str
+        The type of the trial
+    design: Union[DesignInfo, str]
+        The design information of the trial
+    conditions: list
+        The conditions targeted in the trial
+    interventions: list
+        The interventions used in the trial
+    primary_outcome: Union[Outcome, str]
+        The primary outcome of the trial
+    secondary_outcome: Union[Outcome, str]
+        The secondary outcome of the trial
+    secondary_ids: Union[list[SecondaryId], list[str]]
+        The secondary IDs of the trial
+
+    Parameters
+    ----------
+    ns: str
+        The namespace of the trial
+    id: str
+        The ID of the trial
+    """
     def __init__(self, ns: str, id: str):
         super().__init__(ns, id)
         self.title: str = None
@@ -99,10 +210,48 @@ class Trial(Node):
 
 
 class BioEntity(Node):
-    def __init__(self, ns: str = '', id: str = '', term: str = '', origin: str = ''):
+    """Holds information about a biological entity
+
+    Attributes
+    ----------
+    ns: str
+        The namespace of the bioentity
+    id: str
+        The ID of the bioentity
+    curie: str
+        The CURIE of the bioentity
+    source: Optional[str]
+        The source registry of the bioentity
+    term: str
+        The freetext term of the bioentity
+    origin: Optional[str]
+        The trial CURIE that the bioentity is associated with
+
+    Parameters
+    ----------
+    ns: str
+        The namespace of the bioentity
+    id: str
+        The ID of the bioentity
+    term: str
+        The freetext term of the bioentity
+    origin: Optional[str]
+        The trial CURIE that the bioentity is associated with
+    source: Optional[str]
+        The source registry of the bioentity
+    """
+    def __init__(
+            self,
+            ns: Optional[str] = None,
+            id: Optional[str] = None,
+            term: Optional[str] = None,
+            origin: Optional[str] = None,
+            source: Optional[str] = None,
+    ):
         super(BioEntity, self).__init__(ns, id)
         self.term = term
         self.origin = origin
+        self.source = source
 
     def __eq__(self, other):
         if isinstance(other, BioEntity):
@@ -114,10 +263,26 @@ class BioEntity(Node):
 
 
 class Edge:
-    def __init__(self, bio_ent_curie: str, trial_curie: str, rel_type: str):
+    """Edge between a trial and a bioentity
+
+    Attributes
+    ----------
+    bio_ent_curie: str
+        The CURIE of the bioentity
+    trial_curie: str
+        The CURIE of the trial
+    rel_type: str
+        The type of relationship between the bioentity and the trial
+    rel_type_curie: str
+        The CURIE of the relationship type
+    source: str
+        The source of the relationship
+    """
+    def __init__(self, bio_ent_curie: str, trial_curie: str, rel_type: str, source: str):
         self.bio_ent_curie = bio_ent_curie
         self.trial_curie = trial_curie
         self.rel_type = rel_type
+        self.source = source
 
         rel_type_to_curie = {
             "has_condition": "debio:0000036",
