@@ -2,9 +2,9 @@
 
 import logging
 from pathlib import Path
-from ..base.config import BaseConfig
+from ..base.config import Config
 
-class Config(BaseConfig):
+class Config(Config):
     """
     User-mutable properties of Clinicaltrials.gov data processing
     """

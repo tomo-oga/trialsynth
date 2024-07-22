@@ -1,23 +1,24 @@
 import logging
 from pathlib import Path
-from typing import Iterator, Tuple, Callable, Dict, Optional
+from typing import Dict, Optional, Callable, Iterator
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from .config import BaseConfig
+from .config import Config
 from .fetch import BaseFetcher
-from .models import Trial, Edge, Node, BioEntity
-from .store import BaseStorer
-from .transform import BaseTransformer
-from .util import Grounder
+from .models import Trial, Edge, BioEntity
+from . import store
+from . import transform
 
 import gilda
 
 logger = logging.getLogger(__name__)
 
+Grounder = Callable[[BioEntity, list[str], str], Iterator[BioEntity]]
 
-class BaseProcessor:
+
+class Processor:
     """Processes registry data using Config, Fetcher, Storer, and Transformer objects.
 
     Attributes
@@ -26,31 +27,44 @@ class BaseProcessor:
         User-mutable properties of registry data processing
     fetcher : Fetcher
         Fetches registry data from the REST API or a saved file
-    storer : Storer
-        Stores processed data to disk
-    transformer : Transformer
-        Transforms raw data into nodes and edges for a graph database
-    node_iterator : Callable
-        Method to generate nodes from the transformed data
-
-    edges : set
-        Edges between nodes
+    trials : list[Trial]
+        Raw data from the API or saved file
+    curie_to_trial : Dict[str, Trial]
+        Mapping of trial CURIEs to Trial objects
+    conditions_grounder : Grounder
+        Grounds conditions to BioEntities
+    interventions_grounder : Grounder
+        Grounds interventions to BioEntities
+    condition_namespaces : Optional[list[str]]
+        Namespaces to use for grounding conditions
+    intervention_namespaces : Optional[list[str]]
+        Namespaces to use for grounding interventions
+    conditions : list[BioEntity]
+        List of conditions extracted from trials
+    interventions : list[BioEntity]
+        List of interventions extracted from trials
+    edges : list[Edge]
+        List of edges for the graph database
 
     Parameters
     ----------
     config : Config
-        User-mutable properties of Clinicaltrials.gov data processing
+        User-mutable properties of registry data processing
     fetcher : Fetcher
-        Fetches Clinicaltrials.gov data from the REST API or a saved file
-    storer : Storer
-        Stores processed data to disk
-    transformer : Transformer
-        Transforms raw data into nodes and edges for a graph database
+        Fetches registry data from the REST API or a saved file
+    conditions_grounder : Grounder
+        Grounds conditions to BioEntities
+    interventions_grounder : Grounder
+        Grounds interventions to BioEntities
+    condition_namespaces : Optional[list[str]]
+        Namespaces to use for grounding conditions
+    intervention_namespaces : Optional[list[str]]
+        Namespaces to use for grounding
     """
 
     def __init__(
             self,
-            config: BaseConfig,
+            config: Config,
             fetcher: BaseFetcher,
             conditions_grounder: Grounder,
             interventions_grounder: Grounder,
@@ -70,35 +84,28 @@ class BaseProcessor:
         self.condition_namespaces: Optional[list[str]] = condition_namespaces
         self.intervention_namespaces: Optional[list[str]] = intervention_namespaces
 
-        self.transformer = BaseTransformer(self.config)
-        self.storer = BaseStorer(self.config)
-
         self.conditions: list[BioEntity] = []
         self.interventions: list[BioEntity] = []
 
-        self.nodes: list[Node] = []
-        self.edges: list[Node] = []
+        self.edges: list[Edge] = []
 
-    def run(self, raw_data_as_flat_file: bool = False):
+    def run(self):
         self.fetcher.get_api_data()
         self.trials = self.fetcher.raw_data
 
-        # store intermediary representation as flatfile if needed
-        if raw_data_as_flat_file:
-            self.save_trial_data(self.config.raw_data_flatfile_path)
-
-        #  round and process bioentities for storing
+        #  ground and process bioentities for storing
         self.get_bioentities()
         self.process_bioentities()
 
-        # remove duplicate trial entries
+        # remove duplicate trial entries, using this instead of curie_trial_dict to avoid accessing hash structure
         self.trials = list(set(self.trials))
 
-        self.save_trial_data(self.config.processed_data_path, self.config.processed_sample_path)
+        # create edges
+        self.create_edges()
 
-    def save_trial_data(self, path: Path, sample_path: Optional[Path] = None):
-        data = [self.transformer.flatten_trial_data(trial) for trial in self.trials]
-        self.storer.save_trial_data(data, path, sample_path)
+        # save processed data
+        self.save_data()
+
 
     def get_bioentities(self):
         iterated_trials = set()
@@ -118,8 +125,8 @@ class BaseProcessor:
                 self.curie_to_trial[trial.curie] = trial
 
     def process_bioentities(self):
-        for _ in tqdm(range(5), desc='Warming up grounder'):
-            gilda.ground("stuff")
+        logging.info('Warming up grounder...')
+        gilda.ground("stuff")
         logger.info('Done.')
         self.process_conditions()
         self.process_interventions()
@@ -131,7 +138,7 @@ class BaseProcessor:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[condition.origin]
                 conditions = list(self.conditions_grounder(condition, namespaces=self.condition_namespaces,
-                                                      trial_title=trial.title))
+                                                           trial_title=trial.title))
                 trial.conditions.extend(conditions)
 
     def process_interventions(self):
@@ -149,72 +156,92 @@ class BaseProcessor:
 
                 trial.interventions.extend(interventions)
 
-    def set_nodes_and_edges(self):
-        logger.info("Generating nodes and edges")
-        self.set_nodes()
-        self.set_edges()
+    def create_edges(self):
+        for trial in tqdm(self.trials, desc="Generating edges from trial", unit='trial'):
+            self.edges.extend([
+                Edge(condition.curie, trial.curie, 'has_condition', self.config.registry)
+                for condition in trial.conditions if condition
+            ])
 
-    def set_edges(self):
-        edges = tqdm(
-            self.edge_iterator(),
-            desc="Edge generation",
-            unit_scale=True,
-            unit="edge"
+            self.edges.extend([
+                Edge(intervention.curie, trial.curie, 'has_intervention', self.config.registry)
+                for intervention in trial.interventions if intervention
+            ])
+
+    def save_trial_data(self, path: Path, sample_path: Optional[Path] = None):
+        data = [transform.flatten_trial_data(trial) for trial in self.trials]
+
+        headers = [
+            ':CURIE',
+            ':TITLE',
+            ':TYPE',
+            ':DESIGN',
+            ':CONDITIONS',
+            ':INTERVENTIONS',
+            ':PRIMARY_OUTCOME',
+            ':SECONDARY_OUTCOME',
+            ':SECONDARY_IDS',
+            ':SOURCE_REGISTRY'
+            ]
+
+        store.save_data_as_flatfile(
+            data,
+            path=path,
+            headers=headers,
+            sample_path=sample_path,
+            num_samples=self.config.num_sample_entries
         )
-        for edge in edges:
-            self.edges.append(edge)
 
-    def set_nodes(self):
-        nodes = tqdm(
-            self.node_iterator(),
-            desc="Node generation",
-            unit_scale=True,
-            unit="node"
-        )
-        for node in nodes:
-            self.nodes.append(node)
-
-    def node_iterator(self) -> Iterator:
-        """Iterates over nodes in the registry data and yields them for processing."""
-        curie_to_trial = {}
-        yielded_nodes = set()
+    def save_bioentities(self, path: Path, sample_path: Optional[Path] = None):
+        entities = []
         for trial in self.trials:
-            curie = trial.curie
+            entities.extend([condition for condition in trial.conditions])
+            entities.extend([intervention for intervention in trial.interventions])
 
-            self.transformer.transform_title(trial)
-            self.transformer.transform_type(trial)
-            self.transformer.transform_design(trial)
-            self.transformer.transform_conditions(trial)
-            self.transformer.transform_interventions(trial)
-            self.transformer.transform_primary_outcome(trial)
-            self.transformer.transform_secondary_outcome(trial)
-            self.transformer.transform_secondary_ids(trial)
+        entities = list(set(entities))
+        entities = [transform.flatten_bioentity(entity) for entity in entities if entity]
+        store.save_data_as_flatfile(
+            entities,
+            path=path,
+            headers=[':CURIE', ':TERM', ':SOURCE_REGISTRY'],
+            sample_path=sample_path,
+            num_samples=self.config.num_sample_entries
+        )
 
-            curie_to_trial[curie] = trial
+    def save_edges(self, path: Path, sample_path: Optional[Path] = None):
+        edges = [transform.flatten_edge(edge) for edge in self.edges]
 
-            for condition in trial.conditions:
-                if condition:
-                    if condition not in yielded_nodes:
-                        yield condition
-                        yielded_nodes.add(condition)
+        store.save_data_as_flatfile(
+            edges,
+            path=path,
+            headers=[':FROM', ':TO', ':REL_TYPE', ':REL_CURIE', ':SOURCE_REGISTRY'],
+            sample_path=sample_path,
+            num_samples=self.config.num_sample_entries
+        )
 
-            for intervention in trial.interventions:
-                if intervention:
-                    if intervention not in yielded_nodes:
-                        yield intervention
-                        yielded_nodes.add(intervention)
+    def save_data(self):
+        save_samples = bool(self.config.store_samples)
 
-        for trial in set(self.trials):
-            if trial not in yielded_nodes:
-                yield trial
-                yielded_nodes.add(trial)
+        if not self.config.sample_dir.is_dir():
+            self.config.sample_dir.mkdir()
 
-    def edge_iterator(self) -> Iterator:
-        """Iterates over edges in the registry data and yields them for processing."""
-        yielded_edge = set()
+        # save processed trial data to compressed tsv
+        logger.info(f'Serializing and storing processed trial data to {self.config.trials_path}')
+        self.save_trial_data(
+            self.config.trials_path,
+            sample_path=self.config.trials_sample_path if save_samples else None
+        )
 
-        # could be abstracted later to method for handling different edge types
-        for edge in self.edges:
-            if edge not in yielded_edge:
-                yield edge
-                yielded_edge.add(edge)
+        # save processed bioentity data to compressed tsv
+        logger.info(f'Serializing and storing grounded bioentities to {self.config.bio_entities_path}')
+        self.save_bioentities(
+            self.config.bio_entities_path,
+            sample_path=self.config.bio_entities_sample_path if save_samples else None
+        )
+
+        # save edges to compressed tsv
+        logger.info(f'Serializing and storing edges to {self.config.edges_path}')
+        self.save_edges(
+            self.config.edges_path,
+            sample_path=self.config.edges_sample_path if save_samples else None
+        )

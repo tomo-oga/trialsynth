@@ -3,55 +3,45 @@ import requests
 
 import gzip
 
-from .config import BaseConfig
+from .config import Config
 from .models import Trial
 import pickle
 logger = logging.getLogger(__name__)
 
 
 class BaseFetcher:
-    """Fetches data from an API and formats the response as a list of Trial objects
+    """Base class for fetching data from an API and transforming it into a list of :class:`Trial` objects
 
     Attributes
     ----------
-    raw_data: list[trialsynth.base.models.Trial]
-        Data fetched from an API in an intermediary format
-    url: str
-        The API endpoint. Default: ''
-    api_parameters: dict
-        The API parmaters to pass with the request. Default: {}
-    config: trialsynth.base.BaseConfig
-
-
+    raw_data : list[Trial]
+        Raw data from the API
+    url : str
+        URL of the API endpoint
+    api_parameters : dict
+        Parameters to send with the API request
+    config : Config
+        User-mutable properties of registry data processing
     """
     def __init__(self):
         self.raw_data: list[Trial] = list()
         self.url: str = ''
         self.api_parameters: dict = {}
 
-        self.config: BaseConfig = None
+        self.config: Config = None
 
     def get_api_data(self) -> None:
-        """
-        Fetches data from an API, and transforms it into a list of `Trial`s
-        Parameters
-        ----------
-        url : str
-            URL of the API endpoint
-        request_parameters: dict
-            Parameters to send with API request
-        """
+        """Fetches data from an API, and transforms it into a list of :class:`Trial` objects"""
         raise NotImplementedError("Must be defined in subclass")
 
-        self.save_raw_data()
-
     def save_raw_data(self):
+        """Pickles raw trial data as a list of :class:`Trial` objects to disk"""
         logger.info(f'Pickling raw trial data to {self.config.raw_data_path}')
         with gzip.open(self.config.raw_data_path, 'wb') as file:
             pickle.dump(self.raw_data, file)
 
     def send_request(self) -> dict:
-        """ Sends a request to the API and returns the response as JSON
+        """Sends a request to the API and returns the response as JSON
 
         Returns
         -------
@@ -59,13 +49,14 @@ class BaseFetcher:
             JSON response from API
         """
         try:
-            response = requests.get(self.url, self.params)
+            response = requests.get(self.url, self.api_parameters)
             return response.json()
         except Exception:
-            logger.exception(f"Error with request to {self.url} using params {self.params}")
+            logger.exception(f"Error with request to {self.url} using params {self.api_parameters}")
             raise
 
-    def load_saved_data(self) -> list[Trial]:
+    def load_saved_data(self) -> None:
+        """Load saved data as a list of :class:`Trial` objects from disk"""
         logger.info(f"Loading saved data from {self.config.raw_data_path}. This may take a bit.")
         with gzip.open(self.config.raw_data_path, 'r') as file:
             self.raw_data = pickle.load(file)
