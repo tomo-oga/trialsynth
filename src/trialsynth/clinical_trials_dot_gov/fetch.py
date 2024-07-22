@@ -1,241 +1,124 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
-
-import logging
-from pathlib import Path
-
-import pandas as pd
 import requests
-from tqdm import trange
-from typing import Optional
 
-from .config import FIELDS
 from .rest_api_response_models import UnflattenedTrial
+from ..base.fetch import BaseFetcher, logger
+from ..base.config import Config
+
+from itertools import zip_longest
+
+from tqdm import trange
+
+from ..base.models import Trial, BioEntity, SecondaryId, DesignInfo, Outcome
+
+from bioregistry import curie_to_str
 
 
-TRIAL = {field: None for field in FIELDS}
-
-logger = logging.getLogger(__name__)
-
-
-class Fetcher:
-    """Fetches Clinicaltrials.gov data from the REST API or a saved file
-
-    Attributes
-    ----------
-    raw_data : DataFrame
-        Raw data from the API or saved file
-    url : str
-        URL of the API endpoint
-    request_parameters : dict
-        Parameters to send with the API request
-    total_pages : int
-        Total number of pages of data that were fetched from the API
-
-    Parameters
-    ----------
-    url : str
-        URL of the API endpoint
-    request_parameters : dict
-        Parameters to send with the API request
-    """
-
-    def __init__(self, url, request_parameters):
-        self.raw_data = pd.DataFrame()
-        self.url = url
-        self.request_parameters = request_parameters
+class Fetcher(BaseFetcher):
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self.api_parameters = {
+            "fields": self.config.api_fields,  # actually column names, not fields
+            "pageSize": 1000,
+            "countTotal": "true"
+        }
         self.total_pages = 0
 
-    def get_api_data(self, url: str, request_parameters: dict) -> None:
-        """Fetches data from the Clinicaltrials.gov API
+    def get_api_data(self, reload: bool = False) -> None:
+        trial_path = self.config.raw_data_path
+        if trial_path.is_file() and not reload:
+            self.load_saved_data()
+            return
 
-        Parameters
-        ----------
-        url : str
-            URL of the API endpoint
-        request_parameters : dict
-            Parameters to send with the API request
-        """
-        logger.debug(f"Fetching Clinicaltrials.gov data from {url} with parameters {request_parameters}")
+        logger.info(f"Fetching Clinicaltrials.gov data from {self.url} with parameters {self.api_parameters}")
 
         try:
-            self.read_next_page()
-            # start on page "1" because we already did page 0 above. Note that we're zero-indexed,
-            # so "1" is actually is the second page
+            self._read_next_page()
+
             pages = 1 + self.total_pages
-            for page in trange(1, pages, unit="page", desc="Downloading ClinicalTrials.gov"):
-                self.read_next_page()
+            for page in trange(1, pages, unit='page', desc='Downloading ClinicalTrials.gov data'):
+                self._read_next_page()
 
         except Exception:
-            logger.exception(f"Could not fetch data from {url}")
+            logger.exception(f'Could not fetch data from {self.url}')
             raise
 
-    def read_next_page(self) -> None:
-        json_data = send_request(self.url, self.request_parameters)
-        studies = json_data.get("studies", [])
-        flattened_data = flatten_data(studies)
-        self.raw_data = pd.concat([self.raw_data, flattened_data])
-        next_page_token = json_data.get("nextPageToken")
-        self.request_parameters["pageToken"] = next_page_token
+        self.save_raw_data()
+
+    def _read_next_page(self):
+        response = requests.get(self.url, self.api_parameters)
+        response.raise_for_status()
+        json_data = response.json()
+
+        studies = json_data.get('studies', [])
+        trials = self._json_to_trials(studies)
+        self.raw_data.extend(trials)
+        self.api_parameters['pageToken'] = json_data.get('nextPageToken')
+
         if not self.total_pages:
-            self.total_pages = json_data.get("totalCount") // self.request_parameters.get("pageSize")
+            self.total_pages = json_data.get('totalCount') // self.api_parameters.get('pageSize')
 
+    def _json_to_trials(self, data: dict) -> list[Trial]:
+        trials = []
 
-def flatten_data(data: dict) -> pd.DataFrame:
-    """Reformat API response data from hierarchical to tabular
+        for study in data:
+            rest_trial = UnflattenedTrial(**study)
 
-    Parameters
-    ----------
-    data : dict
-        Data from the API response
+            trial = Trial(ns='clinicaltrials', id=rest_trial.protocol_section.id_module.nct_id)
 
-    Returns
-    -------
-    DataFrame
-        Data fetched from the API in tabular format
+            trial.title = rest_trial.protocol_section.id_module.brief_title
 
-    """
-    logger.debug("Reformatting API response data from hierarchical to tabular")
+            trial.type = rest_trial.protocol_section.design_module.study_type
+            design_info = rest_trial.protocol_section.design_module.design_info
+            trial.design = DesignInfo(
+                purpose=design_info.purpose,
+                allocation=design_info.allocation,
+                masking=design_info.masking_info.masking,
+                assignment=design_info.intervention_assignment
+                if design_info.intervention_assignment else design_info.observation_assignment
+            )
 
-    trials = []
+            condition_meshes = rest_trial.derived_section.condition_browse_module.condition_meshes
+            conditions = rest_trial.protocol_section.conditions_module.conditions
+            trial.conditions = [
+                BioEntity(
+                    ns='MESH' if mesh else None,
+                    id=mesh.mesh_id if mesh else None,
+                    term=mesh.term if mesh else None,
+                    name=condition,
+                    origin=trial.curie
+                ) for condition, mesh in zip_longest(conditions, condition_meshes, fillvalue=None)
+            ]
 
-    for trial_data in data:
-        unflattened_trial = UnflattenedTrial(**trial_data)
+            intervention_arms = rest_trial.protocol_section.arms_interventions_module.arms_interventions
+            intervention_meshes = rest_trial.derived_section.intervention_browse_module.intervention_meshes
 
-        condition_browse_module = unflattened_trial.derived_section.condition_browse_module
-        condition_meshes = condition_browse_module.condition_meshes
+            trial.interventions = [
+                BioEntity(
+                    ns='MESH' if mesh else None,
+                    id=mesh.mesh_id if mesh else None,
+                    term=mesh.term if mesh else None,
+                    name=i.name if i else None,
+                    type=i.intervention_type.capitalize() if i else None,
+                    origin=trial.curie
+                ) for i, mesh in zip_longest(intervention_arms, intervention_meshes, fillvalue=None)
+            ]
 
-        condition_mesh_terms = [mesh.term for mesh in condition_meshes]
-        condition_mesh_ids = [mesh.mesh_id for mesh in condition_meshes]
+            primary_outcomes = rest_trial.protocol_section.outcomes_module.primary_outcome
+            trial.primary_outcomes = [Outcome(o.measure, o.time_frame) for o in primary_outcomes]
 
-        arms_interventions_module = unflattened_trial.protocol_section.arms_interventions_module
-        arms_interventions = arms_interventions_module.arms_interventions
+            secondary_outcomes = rest_trial.protocol_section.outcomes_module.secondary_outcome
+            trial.secondary_outcomes = [Outcome(o.measure, o.time_frame) for o in secondary_outcomes]
 
-        intervention_names = [
-            i.name for i in arms_interventions
-        ]
-        intervention_types = [
-            i.intervention_type.capitalize() for i in arms_interventions
-        ]
+            secondary_info = rest_trial.protocol_section.id_module.secondary_ids
+            trial.secondary_ids = [
+                SecondaryId(
+                    ns=s.id_type,
+                    id=s.secondary_id,
+                    curie=curie_to_str(s.id_type, s.secondary_id)
+                ) for s in secondary_info
+            ]
 
-        intervention_browse_module = unflattened_trial.derived_section.intervention_browse_module
-        intervention_meshes = intervention_browse_module.intervention_meshes
-        intervention_mesh_terms = [mesh.term for mesh in intervention_meshes]
-        intervention_mesh_ids = [mesh.mesh_id for mesh in intervention_meshes]
+            trials.append(trial)
 
-        secondary_info = unflattened_trial.protocol_section.id_module.secondary_ids
-
-        secondary_id_types = [s.id_type for s in secondary_info]
-        secondary_ids = [s.secondary_id for s in secondary_info]
-
-        reference_pmids = [r.pmid for r in unflattened_trial.protocol_section.id_module.secondary_ids]  # these are tagged as relevant by the author, but not necessarily about the trial
-
-        conditions_str = join_if_not_empty(unflattened_trial.protocol_section.conditions_module.conditions)
-        condition_mesh_terms_str = join_if_not_empty(condition_mesh_terms)
-        condition_mesh_ids_str = join_if_not_empty(condition_mesh_ids)
-        intervention_names_str = join_if_not_empty(intervention_names)
-        intervention_types_str = join_if_not_empty(intervention_types)
-        intervention_mesh_terms_str = join_if_not_empty(intervention_mesh_terms)
-        intervention_mesh_ids_str = join_if_not_empty(intervention_mesh_ids)
-        phases_str = join_if_not_empty(unflattened_trial.protocol_section.design_module.phases)
-        if phases_str:
-            phases_str = phases_str.replace("PHASE", "Phase ").replace("NA", "Not Applicable")
-        secondary_id_types_str = join_if_not_empty(secondary_id_types)
-        secondary_ids_str = join_if_not_empty(secondary_ids)
-        reference_pmids_str = join_if_not_empty(reference_pmids)
-
-        design_module = unflattened_trial.protocol_section.design_module
-
-        design_allocation_str = design_module.design_info.allocation
-        if design_allocation_str:
-            design_allocation_str = design_allocation_str.replace("NA", "N/A").replace("NON_RANDOMIZED", "Non-Randomized").replace("RANDOMIZED", "Randomized")
-
-        trial = TRIAL.copy()
-
-        id_module = unflattened_trial.protocol_section.id_module
-        status_module = unflattened_trial.protocol_section.status_module
-        start_date_struct = status_module.start_date_struct
-
-        trial["NCTId"] = id_module.nct_id
-        trial["BriefTitle"] = id_module.brief_title
-        trial["Condition"] = conditions_str
-        trial["ConditionMeshTerm"] = condition_mesh_terms_str
-        trial["ConditionMeshId"] = condition_mesh_ids_str
-        trial["InterventionName"] = intervention_names_str
-        trial["InterventionType"] = intervention_types_str
-        trial["InterventionMeshTerm"] = intervention_mesh_terms_str
-        trial["InterventionMeshId"] = intervention_mesh_ids_str
-        trial["StudyType"] = design_module.study_type
-        if trial["StudyType"]:
-            trial["StudyType"] = trial["StudyType"].capitalize()
-        trial["DesignAllocation"] = design_allocation_str
-        trial["OverallStatus"] = status_module.overall_status
-        if trial["OverallStatus"]:
-            trial["OverallStatus"] = trial["OverallStatus"].capitalize()
-        trial["Phase"] = phases_str
-        trial["WhyStopped"] = status_module.why_stopped
-        if trial["WhyStopped"]:
-            trial["WhyStopped"] = trial["WhyStopped"].capitalize()
-        trial["SecondaryIdType"] = secondary_id_types_str
-        trial["SecondaryId"] = secondary_ids_str
-        trial["StartDate"] = start_date_struct.date  # Month [day], year: "November 1, 2023", "May 1984" or NaN
-        trial["StartDateType"] = start_date_struct.date_type  # "Actual" or "Anticipated" (or NaN)
-        trial["ReferencePMID"] = reference_pmids_str
-
-        trials.append(trial)
-
-    return pd.DataFrame.from_dict(trials)
-
-
-def load_saved_data(path: Path) -> pd.DataFrame:
-    """Load saved Clinicaltrials.gov data from a file
-
-    Parameters
-    ----------
-    path : Path
-        Path to the saved data file
-    """
-    logger.debug(f"Loading Clinicaltrials.gov data from {path}")
-
-    try:
-        return pd.read_csv(path, sep="\t")
-    except Exception:
-        logger.exception(f"Could not load data from {path}")
-
-
-def send_request(url: str, params: dict) -> dict:
-    """Send a request to the Clinicaltrials.gov API and return the response as JSON
-
-    Parameters
-    ----------
-    url : str
-        URL of the API endpoint
-    params : dict
-        Parameters to send with the API request
-
-    Returns
-    -------
-    dict
-        JSON response from the API
-    """
-    try:
-        response = requests.get(url, params)
-        return response.json()
-    except Exception:
-        logger.exception(f"Error with request to {url} using params {params}")
-        raise
-
-
-def join_if_not_empty(data: list, delimiter: str = "|") -> Optional[str]:
-    """Join a list of strings with a delimiter if the list is not empty
-
-    Parameters
-    ----------
-    data : list
-        List of strings to join
-    delimiter : Optional[str]
-        Delimiter to use when joining the strings. Default: "|"
-
-    """
-    if all(data):
-        return delimiter.join(data)
-    return None
+        return trials

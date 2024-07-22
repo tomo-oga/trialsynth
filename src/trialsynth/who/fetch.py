@@ -150,10 +150,9 @@ def is_valid(pattern: str, trial_id: str) -> bool:
 
 class Fetcher(BaseFetcher):
     def __init__(self, config: Config):
-        super().__init__()
-        self.config = config
+        super().__init__(config)
 
-    def get_api_data(self, reload: bool = True):
+    def get_api_data(self, reload: bool = False):
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()
@@ -223,8 +222,8 @@ class Fetcher(BaseFetcher):
                     BioEntity(term=intervention, origin=who_trial.curie, source=self.config.registry)
                     for intervention in make_list(trial[30], ';')
                 ]
-                who_trial.primary_outcome = Outcome(measure=make_str(trial[36]))
-                who_trial.secondary_outcome = Outcome(measure=make_str(trial[37]))
+                who_trial.primary_outcomes = Outcome(measure=make_str(trial[36]))
+                who_trial.secondary_outcomes = Outcome(measure=make_str(trial[37]))
                 who_trial.secondary_ids = [SecondaryId(curie=curie) for curie in make_list(trial[2], ';')]
                 who_trial.source = self.config.registry
                 self.raw_data.append(who_trial)

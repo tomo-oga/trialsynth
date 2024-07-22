@@ -23,14 +23,13 @@ class BaseFetcher:
     config : Config
         User-mutable properties of registry data processing
     """
-    def __init__(self):
+    def __init__(self, config: Config):
+        self.config: Config = config
         self.raw_data: list[Trial] = list()
-        self.url: str = ''
+        self.url: str = config.api_url
         self.api_parameters: dict = {}
 
-        self.config: Config = None
-
-    def get_api_data(self) -> None:
+    def get_api_data(self, reload: bool = False) -> None:
         """Fetches data from an API, and transforms it into a list of :class:`Trial` objects"""
         raise NotImplementedError("Must be defined in subclass")
 

@@ -10,16 +10,16 @@ def transform_secondary_ids(trial: Trial) -> str:
 
 def transform_secondary_outcome(trial: Trial) -> str:
     """Transforms the secondary outcome of a trial into a string."""
-    trial.secondary_outcome = (f'Measure: {trial.secondary_outcome.measure.strip()}; '
-                               f'Time Frame: {trial.secondary_outcome.time_frame.strip()}')
-    return trial.secondary_outcome
+    trial.secondary_outcomes = (f'Measure: {trial.secondary_outcomes.measure.strip()}; '
+                               f'Time Frame: {trial.secondary_outcomes.time_frame.strip()}')
+    return trial.secondary_outcomes
 
 
 def transform_primary_outcome(trial: Trial) -> str:
     """Transforms the primary outcome of a trial into a string."""
-    trial.primary_outcome = (f'Measure: {trial.primary_outcome.measure.strip()}; '
-                             f'Time Frame: {trial.primary_outcome.time_frame.strip()}')
-    return trial.primary_outcome
+    trial.primary_outcomes = (f'Measure: {trial.primary_outcomes.measure.strip()}; '
+                             f'Time Frame: {trial.primary_outcomes.time_frame.strip()}')
+    return trial.primary_outcomes
 
 
 def transform_interventions(trial: Trial) -> str:

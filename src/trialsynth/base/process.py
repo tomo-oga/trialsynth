@@ -70,6 +70,7 @@ class Processor:
             interventions_grounder: Grounder,
             condition_namespaces: Optional[list[str]] = None,
             intervention_namespaces: Optional[list[str]] = None,
+            reload_api_data: bool = False
     ):
         self.config = config
         self.fetcher = fetcher
@@ -89,8 +90,10 @@ class Processor:
 
         self.edges: list[Edge] = []
 
+        self.reload_api_data = reload_api_data
+
     def run(self):
-        self.fetcher.get_api_data()
+        self.fetcher.get_api_data(reload=self.reload_api_data)
         self.trials = self.fetcher.raw_data
 
         #  ground and process bioentities for storing
@@ -128,7 +131,7 @@ class Processor:
         logging.info('Warming up grounder...')
         gilda.ground("stuff")
         logger.info('Done.')
-        self.process_conditions()
+        # self.process_conditions()
         self.process_interventions()
 
     def process_conditions(self):

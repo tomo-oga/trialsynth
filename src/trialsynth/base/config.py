@@ -85,8 +85,7 @@ class Config:
         self.num_sample_entries = int(self.get_config('NUM_SAMPLE_ENTRIES'))
 
         self.api_url: str = self.get_config('API_URL')
-        self.api_parameters = self.get_config('API_FIELDS')
-        self.api_parameters: dict = {}
+        self.api_fields = ','.join([field.strip() for field in self.get_config('API_FIELDS').split(',')])
 
         root = logging.getLogger()
         root.setLevel(self.get_config('LOGGING_LEVEL'))

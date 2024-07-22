@@ -2,6 +2,8 @@ from typing import Union, Optional
 import logging
 
 from bioregistry import curie_to_str
+from indra.ontology.standardize import standardize_name_db_refs
+from indra.statements.agent import get_grounding
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +24,8 @@ class SecondaryId:
     id: str
     curie: str
 
-    def __init__(self, name_space: str = '', id: str = '', curie: str = ''):
-        self.name_space = name_space
+    def __init__(self, ns: str = '', id: str = '', curie: str = ''):
+        self.name_space = ns
         self.id = id
         self.curie = curie
 
@@ -141,15 +143,27 @@ class Node:
     ns_id : Optional[str]
         The ID of the node
     """
-    def __init__(self, ns: Optional[str], ns_id: Optional[str]):
-        self.ns: str = ns
-        self.id: str = ns_id
-        self.source: Optional[str] = None
+    def __init__(
+            self,
+            ns: Optional[str] = None,
+            ns_id: Optional[str] = None,
+            type: Optional[str] = None,
+            source: Optional[str] = None
+    ):
+        self.ns: Optional[str] = ns
+        self.id: Optional[str] = ns_id
+        self.type: Optional[str] = type
+        self.source: Optional[str] = source
 
-        if ns and ns_id:
-            self.curie: str = curie_to_str(self.ns, self.id)
-        else:
-            self.curie: str = None
+        self.curie: Optional[str] = None
+
+        std_name, db_ref = standardize_name_db_refs({self.ns: self.id})
+        ns, id = get_grounding(db_ref)
+        if ns and id:
+            self.ns = ns
+            self.id = id
+
+        self.curie = curie_to_str(self.ns, self.id)
 
 
 class Trial(Node):
@@ -175,9 +189,9 @@ class Trial(Node):
         The conditions targeted in the trial
     interventions: list
         The interventions used in the trial
-    primary_outcome: Union[Outcome, str]
+    primary_outcomes: Union[Outcome, str]
         The primary outcome of the trial
-    secondary_outcome: Union[Outcome, str]
+    secondary_outcomes: Union[Outcome, str]
         The secondary outcome of the trial
     secondary_ids: Union[list[SecondaryId], list[str]]
         The secondary IDs of the trial
@@ -189,15 +203,14 @@ class Trial(Node):
     id: str
         The ID of the trial
     """
-    def __init__(self, ns: str, id: str):
-        super().__init__(ns, id)
+    def __init__(self, ns: str, id: str, type: Optional[str] = None, source: Optional[str] = None):
+        super().__init__(ns=ns, ns_id=id, type=type, source=source)
         self.title: str = None
-        self.type: str = None
         self.design: Union[DesignInfo, str] = None
         self.conditions: list = list()
         self.interventions: list = list()
-        self.primary_outcome: Union[Outcome, str] = list()
-        self.secondary_outcome: Union[Outcome, str] = list()
+        self.primary_outcomes: list[Union[Outcome, str]] = list()
+        self.secondary_outcomes: list[Union[Outcome, str]] = list()
         self.secondary_ids: Union[list[SecondaryId], list[str]] = list()
 
     def __eq__(self, other):
@@ -223,7 +236,9 @@ class BioEntity(Node):
     source: Optional[str]
         The source registry of the bioentity
     term: str
-        The freetext term of the bioentity
+        The text term of the bioentity from the given namespace
+    name: str
+        The freetext name of the bioentity
     origin: Optional[str]
         The trial CURIE that the bioentity is associated with
 
@@ -234,7 +249,9 @@ class BioEntity(Node):
     id: str
         The ID of the bioentity
     term: str
-        The freetext term of the bioentity
+        The text term of the bioentity from the given namespace
+    name: str
+        The freetext name of the bioentity
     origin: Optional[str]
         The trial CURIE that the bioentity is associated with
     source: Optional[str]
@@ -244,12 +261,16 @@ class BioEntity(Node):
             self,
             ns: Optional[str] = None,
             id: Optional[str] = None,
+            type: Optional[str] = None,
             term: Optional[str] = None,
+            name: Optional[str] = None,
             origin: Optional[str] = None,
             source: Optional[str] = None,
+
     ):
-        super(BioEntity, self).__init__(ns, id)
+        super(BioEntity, self).__init__(ns, id, type)
         self.term = term
+        self.name = name
         self.origin = origin
         self.source = source
 
