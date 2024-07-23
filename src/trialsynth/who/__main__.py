@@ -1,3 +1,5 @@
+import click
+
 from ..base.config import Config
 from ..base.models import BioEntity
 from ..base.process import Processor
@@ -20,19 +22,22 @@ def ground_condition(condition: BioEntity, namespaces: list[str] = None, trial_t
         annotations = gilda.annotate(condition.term, namespaces=namespaces,
                                      context_text=trial_title)
 
-        for term, match, *_ in annotations:
-            condition = copy.deepcopy(condition)
-            condition.term = term
-            condition.curie = match.term.get_curie()
-            yield condition
+        for _, match, *_ in annotations:
+            match = match.term
+            grounded_condition = copy.deepcopy(condition)
+            grounded_condition.term = match.entry_name
+            grounded_condition.ns = match.db
+            grounded_condition.id = match.id
+            yield grounded_condition
     else:
-        condition.curie = grounded[0].term.get_curie()
-        yield condition
+        match = grounded[0].term
+        grounded_condition = copy.deepcopy(condition)
+        grounded_condition.ns = match.db
+        grounded_condition.id = match.id
+        yield grounded_condition
 
 
 def ground_intervention(intervention: BioEntity, namespaces: list[str] = None, trial_title: str = None) -> Iterator[BioEntity]:
-    if intervention.term == 'NULL':
-        yield
     try:
         *intervention_type, intervention_term = intervention.term.split(':')
     except Exception:
@@ -48,23 +53,32 @@ def ground_intervention(intervention: BioEntity, namespaces: list[str] = None, t
     if len(grounded) == 0:
         annotations = gilda.annotate(intervention.term, namespaces=namespaces, context_text=context)
         for term, match, *_ in annotations:
-            intervention = copy.deepcopy(intervention)
-            intervention.term = term
-            intervention.curie = match.term.get_curie()
-            yield intervention
+            match = match.term
+            grounded_intervention = copy.deepcopy(intervention)
+            grounded_intervention.term = match.entry_name
+            grounded_intervention.ns = match.db
+            grounded_intervention.id = match.id
+            yield grounded_intervention
     else:
-        intervention.curie = grounded[0].term.get_curie()
-        yield intervention
+        match = grounded[0].term
+        grounded_intervention = copy.deepcopy(intervention)
+        grounded_intervention.term = match.entry_name
+        grounded_intervention.ns = match.db
+        grounded_intervention.id = match.id
+        yield grounded_intervention
 
 
-def main():
+@click.command()
+@click.option('--reload', default=False)
+def main(reload: bool):
     config = Config(registry='who')
     processor = Processor(
         config=config,
         fetcher=Fetcher(config),
         conditions_grounder=ground_condition,
         interventions_grounder=ground_intervention,
-        condition_namespaces=["MESH", "doid", "mondo", "go"]
+        condition_namespaces=["MESH", "doid", "mondo", "go"],
+        reload_api_data=reload
     )
 
     processor.run()

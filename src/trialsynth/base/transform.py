@@ -10,26 +10,32 @@ def transform_secondary_ids(trial: Trial) -> str:
 
 def transform_secondary_outcome(trial: Trial) -> str:
     """Transforms the secondary outcome of a trial into a string."""
-    trial.secondary_outcomes = (f'Measure: {trial.secondary_outcomes.measure.strip()}; '
-                               f'Time Frame: {trial.secondary_outcomes.time_frame.strip()}')
+    trial.secondary_outcomes = '|'.join([
+        f'Measure: {outcome.measure.strip() if outcome.measure else ""}; '
+        f'Time Frame: {outcome.time_frame.strip() if outcome.time_frame else ""}'
+        for outcome in trial.secondary_outcomes
+    ])
     return trial.secondary_outcomes
 
 
 def transform_primary_outcome(trial: Trial) -> str:
     """Transforms the primary outcome of a trial into a string."""
-    trial.primary_outcomes = (f'Measure: {trial.primary_outcomes.measure.strip()}; '
-                             f'Time Frame: {trial.primary_outcomes.time_frame.strip()}')
+    trial.primary_outcomes = '|'.join([
+        f'Measure: {outcome.measure.strip() if outcome.measure else ""}; '
+        f'Time Frame: {outcome.time_frame.strip() if outcome.time_frame else ""}'
+        for outcome in trial.primary_outcomes
+    ])
     return trial.primary_outcomes
 
 
 def transform_interventions(trial: Trial) -> str:
     """Transforms a list of interventions into a string."""
-    return ','.join([intervention.curie for intervention in trial.interventions if intervention])
+    return ','.join([intervention.curie for intervention in set(trial.interventions) if intervention])
 
 
 def transform_conditions(trial: Trial) -> str:
     """Transforms a list of conditions into a string."""
-    return ','.join([condition.curie for condition in trial.conditions if condition])
+    return ','.join([condition.curie for condition in set(trial.conditions) if condition])
 
 
 def transform_design(trial: Trial) -> str:
@@ -45,7 +51,7 @@ def transform_design(trial: Trial) -> str:
 
 def transform_type(trial: Trial) -> str:
     """Transforms the type of a trial into a string."""
-    return trial.type.strip()
+    return trial.type.strip() if trial.type else ''
 
 
 def transform_title(trial: Trial) -> str:
@@ -95,7 +101,7 @@ def flatten_bioentity(entity: BioEntity) -> Tuple[str, str, str]:
     Tuple[str, str, str]
         A tuple of the flattened BioEntity. In order of curie, term, source.
     """
-    return entity.curie, entity.term, entity.source
+    return entity.curie, entity.term, entity.type, entity.source
 
 
 def flatten_edge(edge: Edge) -> Tuple[str, str, str, str, str]:

@@ -5,9 +5,7 @@ from .rest_api_response_models import UnflattenedTrial
 from ..base.fetch import BaseFetcher, logger
 from ..base.config import Config
 
-from itertools import zip_longest
-
-from tqdm import trange
+from tqdm import tqdm
 
 from ..base.models import Trial, BioEntity, SecondaryId, DesignInfo, Outcome
 
@@ -30,14 +28,18 @@ class Fetcher(BaseFetcher):
             self.load_saved_data()
             return
 
-        logger.info(f"Fetching Clinicaltrials.gov data from {self.url} with parameters {self.api_parameters}")
+        logger.info(f"Fetching Clinicaltrials.gov data from {self.url}")
 
         try:
             self._read_next_page()
 
-            pages = 1 + self.total_pages
-            for page in trange(1, pages, unit='page', desc='Downloading ClinicalTrials.gov data'):
-                self._read_next_page()
+            pages = self.total_pages
+            page_size = self.api_parameters.get('pageSize')
+            with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial') as pbar:
+                pbar.update(page_size)
+                for _ in range(1, int(pages)):
+                    self._read_next_page()
+                    pbar.update(page_size)
 
         except Exception:
             logger.exception(f'Could not fetch data from {self.url}')
@@ -56,7 +58,7 @@ class Fetcher(BaseFetcher):
         self.api_parameters['pageToken'] = json_data.get('nextPageToken')
 
         if not self.total_pages:
-            self.total_pages = json_data.get('totalCount') // self.api_parameters.get('pageSize')
+            self.total_pages = json_data.get('totalCount') / self.api_parameters.get('pageSize')
 
     def _json_to_trials(self, data: dict) -> list[Trial]:
         trials = []
@@ -82,27 +84,44 @@ class Fetcher(BaseFetcher):
             conditions = rest_trial.protocol_section.conditions_module.conditions
             trial.conditions = [
                 BioEntity(
-                    ns='MESH' if mesh else None,
-                    id=mesh.mesh_id if mesh else None,
-                    term=mesh.term if mesh else None,
-                    name=condition,
-                    origin=trial.curie
-                ) for condition, mesh in zip_longest(conditions, condition_meshes, fillvalue=None)
+                    term=condition,
+                    type='Condition',
+                    origin=trial.curie,
+                    source=self.config.registry
+                ) for condition in conditions
             ]
+            trial.conditions.extend([
+                BioEntity(
+                    ns='MESH',
+                    id=mesh.mesh_id,
+                    type='Condition',
+                    term=mesh.term,
+                    origin=trial.curie,
+                    source=self.config.registry
+                ) for mesh in condition_meshes
+            ])
 
             intervention_arms = rest_trial.protocol_section.arms_interventions_module.arms_interventions
             intervention_meshes = rest_trial.derived_section.intervention_browse_module.intervention_meshes
 
             trial.interventions = [
                 BioEntity(
-                    ns='MESH' if mesh else None,
-                    id=mesh.mesh_id if mesh else None,
-                    term=mesh.term if mesh else None,
-                    name=i.name if i else None,
-                    type=i.intervention_type.capitalize() if i else None,
-                    origin=trial.curie
-                ) for i, mesh in zip_longest(intervention_arms, intervention_meshes, fillvalue=None)
+                    term=i.name,
+                    type='Intervention',
+                    origin=trial.curie,
+                    source=self.config.registry
+                ) for i in intervention_arms if i.name
             ]
+            trial.interventions.extend([
+                BioEntity(
+                    ns='MESH',
+                    id=mesh.mesh_id,
+                    term=mesh.term,
+                    type='Intervention',
+                    origin=trial.curie,
+                    source=self.config.registry
+                ) for mesh in intervention_meshes
+            ])
 
             primary_outcomes = rest_trial.protocol_section.outcomes_module.primary_outcome
             trial.primary_outcomes = [Outcome(o.measure, o.time_frame) for o in primary_outcomes]
@@ -118,6 +137,8 @@ class Fetcher(BaseFetcher):
                     curie=curie_to_str(s.id_type, s.secondary_id)
                 ) for s in secondary_info
             ]
+
+            trial.source = self.config.registry
 
             trials.append(trial)
 

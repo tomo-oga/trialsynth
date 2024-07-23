@@ -1,4 +1,5 @@
 import logging
+
 from pathlib import Path
 from typing import Dict, Optional, Callable, Iterator
 
@@ -163,12 +164,12 @@ class Processor:
         for trial in tqdm(self.trials, desc="Generating edges from trial", unit='trial'):
             self.edges.extend([
                 Edge(condition.curie, trial.curie, 'has_condition', self.config.registry)
-                for condition in trial.conditions if condition
+                for condition in set(trial.conditions) if condition
             ])
 
             self.edges.extend([
                 Edge(intervention.curie, trial.curie, 'has_intervention', self.config.registry)
-                for intervention in trial.interventions if intervention
+                for intervention in set(trial.interventions) if intervention
             ])
 
     def save_trial_data(self, path: Path, sample_path: Optional[Path] = None):
@@ -206,7 +207,7 @@ class Processor:
         store.save_data_as_flatfile(
             entities,
             path=path,
-            headers=[':CURIE', ':TERM', ':SOURCE_REGISTRY'],
+            headers=[':CURIE', ':TERM', ':TYPE', ':SOURCE_REGISTRY'],
             sample_path=sample_path,
             num_samples=self.config.num_sample_entries
         )
@@ -215,7 +216,7 @@ class Processor:
         edges = [transform.flatten_edge(edge) for edge in self.edges]
 
         store.save_data_as_flatfile(
-            edges,
+            sorted(edges),
             path=path,
             headers=[':FROM', ':TO', ':REL_TYPE', ':REL_CURIE', ':SOURCE_REGISTRY'],
             sample_path=sample_path,

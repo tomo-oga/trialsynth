@@ -122,6 +122,9 @@ class Outcome:
         return hash((self.measure, self.time_frame))
 
 
+# types of all nodes should be standardized to a class holding enumerations in the future.
+
+# noinspection PyTypeChecker
 class Node:
     """Node for a trial or bioentity
 
@@ -131,8 +134,6 @@ class Node:
         The namespace of the node
     id : str
         The ID of the node
-    curie : str
-        The CURIE of the node
     source : Optional[str]
         The source registry of the node
 
@@ -140,30 +141,31 @@ class Node:
     ----------
     ns : Optional[str]
         The namespace of the node
-    ns_id : Optional[str]
+    id : Optional[str]
         The ID of the node
     """
+
     def __init__(
             self,
-            ns: Optional[str] = None,
-            ns_id: Optional[str] = None,
-            type: Optional[str] = None,
-            source: Optional[str] = None
+            type: str,
+            source: str,
+            ns: str = None,
+            id: str = None,
     ):
-        self.ns: Optional[str] = ns
-        self.id: Optional[str] = ns_id
-        self.type: Optional[str] = type
+        self.ns: str = ns
+        self.id: str = id
+        self.type: str = type
         self.source: Optional[str] = source
 
-        self.curie: Optional[str] = None
-
+    @property
+    def curie(self):
         std_name, db_ref = standardize_name_db_refs({self.ns: self.id})
         ns, id = get_grounding(db_ref)
         if ns and id:
             self.ns = ns
             self.id = id
 
-        self.curie = curie_to_str(self.ns, self.id)
+        return curie_to_str(self.ns, self.id)
 
 
 class Trial(Node):
@@ -175,8 +177,6 @@ class Trial(Node):
         The namespace of the trial
     id: str
         The ID of the trial
-    curie: str
-        The CURIE of the trial
     source: Optional[str]
         The source registry of the trial
     title: str
@@ -204,14 +204,14 @@ class Trial(Node):
         The ID of the trial
     """
     def __init__(self, ns: str, id: str, type: Optional[str] = None, source: Optional[str] = None):
-        super().__init__(ns=ns, ns_id=id, type=type, source=source)
-        self.title: str = None
-        self.design: Union[DesignInfo, str] = None
-        self.conditions: list = list()
-        self.interventions: list = list()
-        self.primary_outcomes: list[Union[Outcome, str]] = list()
-        self.secondary_outcomes: list[Union[Outcome, str]] = list()
-        self.secondary_ids: Union[list[SecondaryId], list[str]] = list()
+        super().__init__(ns=ns, id=id, type=type, source=source)
+        self.title: Optional[str] = None
+        self.design: Optional[DesignInfo, str] = None
+        self.conditions: list = []
+        self.interventions: list = []
+        self.primary_outcomes: list[Union[Outcome, str]] = []
+        self.secondary_outcomes: list[Union[Outcome, str]] = []
+        self.secondary_ids: Union[list[SecondaryId], list[str]] = []
 
     def __eq__(self, other):
         if isinstance(other, Trial):
@@ -231,14 +231,10 @@ class BioEntity(Node):
         The namespace of the bioentity
     id: str
         The ID of the bioentity
-    curie: str
-        The CURIE of the bioentity
     source: Optional[str]
         The source registry of the bioentity
     term: str
         The text term of the bioentity from the given namespace
-    name: str
-        The freetext name of the bioentity
     origin: Optional[str]
         The trial CURIE that the bioentity is associated with
 
@@ -250,8 +246,6 @@ class BioEntity(Node):
         The ID of the bioentity
     term: str
         The text term of the bioentity from the given namespace
-    name: str
-        The freetext name of the bioentity
     origin: Optional[str]
         The trial CURIE that the bioentity is associated with
     source: Optional[str]
@@ -259,20 +253,17 @@ class BioEntity(Node):
     """
     def __init__(
             self,
+            term: str,
+            type: str,
+            origin: str,
+            source: str,
             ns: Optional[str] = None,
             id: Optional[str] = None,
-            type: Optional[str] = None,
-            term: Optional[str] = None,
-            name: Optional[str] = None,
-            origin: Optional[str] = None,
-            source: Optional[str] = None,
-
     ):
-        super(BioEntity, self).__init__(ns, id, type)
-        self.term = term
-        self.name = name
-        self.origin = origin
-        self.source = source
+        super().__init__(ns=ns, id=id, type=type, source=source)
+        self.term: str = term
+        self.origin: str = origin
+        self.source: str = source
 
     def __eq__(self, other):
         if isinstance(other, BioEntity):
