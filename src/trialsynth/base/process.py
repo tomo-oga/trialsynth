@@ -1,7 +1,7 @@
 import logging
 
 from pathlib import Path
-from typing import Dict, Optional, Callable, Iterator
+from typing import Dict, Optional, Callable
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -9,14 +9,14 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 from .config import Config
 from .fetch import BaseFetcher
 from .models import Trial, Edge, BioEntity
+from .ground import ground_entity, PreProcessor
+
 from . import store
 from . import transform
 
 import gilda
 
 logger = logging.getLogger(__name__)
-
-Grounder = Callable[[BioEntity, list[str], str], Iterator[BioEntity]]
 
 
 class Processor:
@@ -67,8 +67,8 @@ class Processor:
             self,
             config: Config,
             fetcher: BaseFetcher,
-            conditions_grounder: Grounder,
-            interventions_grounder: Grounder,
+            condition_preprocessor: Callable[[BioEntity], BioEntity] = lambda x: x,
+            intervention_preprocessor: Callable[[BioEntity], BioEntity] = lambda x: x,
             condition_namespaces: Optional[list[str]] = None,
             intervention_namespaces: Optional[list[str]] = None,
             reload_api_data: bool = False
@@ -80,8 +80,8 @@ class Processor:
 
         self.curie_to_trial: Dict[str, Trial] = {}
 
-        self.conditions_grounder: Grounder = conditions_grounder
-        self.interventions_grounder: Grounder = interventions_grounder
+        self.condition_preprocessor: PreProcessor = condition_preprocessor
+        self.interventions_preprocessor: PreProcessor = intervention_preprocessor
 
         self.condition_namespaces: Optional[list[str]] = condition_namespaces
         self.intervention_namespaces: Optional[list[str]] = intervention_namespaces
@@ -132,7 +132,7 @@ class Processor:
         logging.info('Warming up grounder...')
         gilda.ground("stuff")
         logger.info('Done.')
-        # self.process_conditions()
+        self.process_conditions()
         self.process_interventions()
 
     def process_conditions(self):
@@ -141,8 +141,14 @@ class Processor:
         for condition in condition_iter:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[condition.origin]
-                conditions = list(self.conditions_grounder(condition, namespaces=self.condition_namespaces,
-                                                           trial_title=trial.title))
+                conditions = list(
+                    ground_entity(
+                        condition,
+                        preprocessor=self.condition_preprocessor,
+                        namespaces=self.condition_namespaces,
+                        trial_title=trial.title
+                    )
+                )
                 trial.conditions.extend(conditions)
 
     def process_interventions(self):
@@ -152,10 +158,12 @@ class Processor:
         for intervention in intervention_iter:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[intervention.origin]
-                interventions = list(self.interventions_grounder(
-                    intervention,
-                    namespaces=self.intervention_namespaces,
-                    trial_title=self.curie_to_trial[intervention.origin].title
+                interventions = list(
+                    ground_entity(
+                        intervention,
+                        preprocessor=self.interventions_preprocessor,
+                        namespaces=self.intervention_namespaces,
+                        trial_title=trial.title
                 ))
 
                 trial.interventions.extend(interventions)
