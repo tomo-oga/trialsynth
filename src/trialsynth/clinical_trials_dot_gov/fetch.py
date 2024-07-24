@@ -9,8 +9,6 @@ from tqdm import tqdm
 
 from ..base.models import Trial, BioEntity, SecondaryId, DesignInfo, Outcome
 
-from bioregistry import curie_to_str
-
 
 class Fetcher(BaseFetcher):
     def __init__(self, config: Config):
@@ -35,9 +33,9 @@ class Fetcher(BaseFetcher):
 
             pages = self.total_pages
             page_size = self.api_parameters.get('pageSize')
-            with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial') as pbar:
+            with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial', unit_scale=True) as pbar:
                 pbar.update(page_size)
-                for _ in range(1, int(pages)):
+                for _ in range(int(pages)):
                     self._read_next_page()
                     pbar.update(page_size)
 
@@ -70,7 +68,11 @@ class Fetcher(BaseFetcher):
 
             trial.title = rest_trial.protocol_section.id_module.brief_title
 
-            trial.type = rest_trial.protocol_section.design_module.study_type
+            study_type = rest_trial.protocol_section.design_module.study_type
+
+            if study_type:
+                trial.labels.append(study_type.strip().lower())
+
             design_info = rest_trial.protocol_section.design_module.design_info
             trial.design = DesignInfo(
                 purpose=design_info.purpose,
@@ -85,7 +87,7 @@ class Fetcher(BaseFetcher):
             trial.conditions = [
                 BioEntity(
                     term=condition,
-                    type='Condition',
+                    labels=['condition'],
                     origin=trial.curie,
                     source=self.config.registry
                 ) for condition in conditions
@@ -94,7 +96,7 @@ class Fetcher(BaseFetcher):
                 BioEntity(
                     ns='MESH',
                     id=mesh.mesh_id,
-                    type='Condition',
+                    labels=['condition'],
                     term=mesh.term,
                     origin=trial.curie,
                     source=self.config.registry
@@ -107,7 +109,7 @@ class Fetcher(BaseFetcher):
             trial.interventions = [
                 BioEntity(
                     term=i.name,
-                    type='Intervention',
+                    labels=['intervention', i.intervention_type],
                     origin=trial.curie,
                     source=self.config.registry
                 ) for i in intervention_arms if i.name
@@ -117,7 +119,7 @@ class Fetcher(BaseFetcher):
                     ns='MESH',
                     id=mesh.mesh_id,
                     term=mesh.term,
-                    type='Intervention',
+                    labels=['intervention'],
                     origin=trial.curie,
                     source=self.config.registry
                 ) for mesh in intervention_meshes
@@ -133,8 +135,7 @@ class Fetcher(BaseFetcher):
             trial.secondary_ids = [
                 SecondaryId(
                     ns=s.id_type,
-                    id=s.secondary_id,
-                    curie=curie_to_str(s.id_type, s.secondary_id)
+                    id=s.secondary_id
                 ) for s in secondary_info
             ]
 

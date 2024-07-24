@@ -64,8 +64,6 @@ class Config:
         self.registry: str = registry
         self.config_dict: dict = self._create_config_dict()
 
-        self.store_samples: bool = self.get_config('STORE_SAMPLES')
-
         # directories
         self.data_dir: Path = Path(self.get_config('DATA_DIR'))
         self.sample_dir: Path = self.data_dir.joinpath('samples')

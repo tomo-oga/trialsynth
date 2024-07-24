@@ -12,6 +12,8 @@ condition_namespaces = ['MESH', 'DOID', 'EFO', 'HP', 'GO']
 intervention_namespaces = ['CHEBI', 'MESH', 'EFO', 'HGNC']
 
 PreProcessor = Callable[[BioEntity], BioEntity]
+
+
 def ground_entity(
         entity: BioEntity,
         preprocessor: Callable[[BioEntity], BioEntity] = lambda x: x,
@@ -34,7 +36,7 @@ def ground_entity(
                 entity.ns, entity.id, entity.term = match.db, match.id, match.entry_name
                 yield entity
     else:
-        # if not grounded term, ground using gilda
+        # if not grounded term, ground using gilda and ner
         matches = gilda.ground(entity.term, namespaces=namespaces, context=trial_title)
 
         # if a match is found, use and yield:

@@ -3,7 +3,8 @@ import click
 from ..base.config import Config
 from ..base.models import BioEntity
 from ..base.process import Processor
-from ..base.ground import condition_namespaces, PreProcessor
+from ..base.ground import PreProcessor
+from ..base.ground import intervention_namespaces, condition_namespaces
 
 from .fetch import Fetcher
 
@@ -23,15 +24,20 @@ def preprocess_intervention() -> PreProcessor:
 
 
 @click.command()
-@click.option('--reload', default=False)
-def main(reload: bool):
+@click.option('-r', '--reload', default=False)
+@click.option('-s', '--store-samples', default=False)
+@click.option('-v', '--validate', default=True)
+def main(reload: bool, store_samples: bool, validate: bool):
     config = Config(registry='who')
     processor = Processor(
         config=config,
         fetcher=Fetcher(config),
         condition_preprocessor=preprocess_intervention(),
-        condition_namespaces=["MESH", "doid", "mondo", "go"],
-        reload_api_data=reload
+        condition_namespaces=condition_namespaces,
+        intervention_namespaces=intervention_namespaces,
+        reload_api_data=reload,
+        store_samples=store_samples,
+        validate=validate
     )
 
     processor.run()

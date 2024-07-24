@@ -1,17 +1,16 @@
-from typing import Tuple
-
+from typing import Tuple, Iterable
 from .models import Trial, BioEntity, Edge
 
 
 def transform_secondary_ids(trial: Trial) -> str:
     """Transforms a list of secondary IDs into a string."""
-    return ''.join([id.curie for id in trial.secondary_ids])
+    return ';'.join([id.curie for id in trial.secondary_ids])
 
 
 def transform_secondary_outcome(trial: Trial) -> str:
     """Transforms the secondary outcome of a trial into a string."""
-    trial.secondary_outcomes = '|'.join([
-        f'Measure: {outcome.measure.strip() if outcome.measure else ""}; '
+    trial.secondary_outcomes = ';'.join([
+        f'Measure: {outcome.measure.strip() if outcome.measure else ""}, '
         f'Time Frame: {outcome.time_frame.strip() if outcome.time_frame else ""}'
         for outcome in trial.secondary_outcomes
     ])
@@ -20,8 +19,8 @@ def transform_secondary_outcome(trial: Trial) -> str:
 
 def transform_primary_outcome(trial: Trial) -> str:
     """Transforms the primary outcome of a trial into a string."""
-    trial.primary_outcomes = '|'.join([
-        f'Measure: {outcome.measure.strip() if outcome.measure else ""}; '
+    trial.primary_outcomes = ';'.join([
+        f'Measure: {outcome.measure.strip() if outcome.measure else ""}, '
         f'Time Frame: {outcome.time_frame.strip() if outcome.time_frame else ""}'
         for outcome in trial.primary_outcomes
     ])
@@ -30,12 +29,20 @@ def transform_primary_outcome(trial: Trial) -> str:
 
 def transform_interventions(trial: Trial) -> str:
     """Transforms a list of interventions into a string."""
-    return ','.join([intervention.curie for intervention in set(trial.interventions) if intervention])
+    return _transform_entities(set(trial.interventions))
 
 
 def transform_conditions(trial: Trial) -> str:
     """Transforms a list of conditions into a string."""
-    return ','.join([condition.curie for condition in set(trial.conditions) if condition])
+    return _transform_entities(set(trial.conditions))
+
+
+def _transform_entities(entities: Iterable[BioEntity]) -> str:
+    transformed_entities = []
+    for entity in entities:
+        entity.ns = entity.ns.lower()
+        transformed_entities.append(entity.curie)
+    return ';'.join(transformed_entities)
 
 
 def transform_design(trial: Trial) -> str:
@@ -49,9 +56,9 @@ def transform_design(trial: Trial) -> str:
             f'Assignment: {trial.design.assignment.strip() if trial.design.assignment else ""}')
 
 
-def transform_type(trial: Trial) -> str:
-    """Transforms the type of a trial into a string."""
-    return trial.type.strip() if trial.type else ''
+def transform_labels(trial: Trial) -> str:
+    """Transforms the type of trial into a string."""
+    return ';'.join([label for label in trial.labels])
 
 
 def transform_title(trial: Trial) -> str:
@@ -77,7 +84,7 @@ def flatten_trial_data(trial: Trial) -> Tuple:
     return (
         trial.curie,
         transform_title(trial),
-        transform_type(trial),
+        transform_labels(trial),
         transform_design(trial),
         transform_conditions(trial),
         transform_interventions(trial),
@@ -88,7 +95,7 @@ def flatten_trial_data(trial: Trial) -> Tuple:
     )
 
 
-def flatten_bioentity(entity: BioEntity) -> Tuple[str, str, str]:
+def flatten_bioentity(entity: BioEntity) -> Tuple[str, str, str, str]:
     """Flattens a BioEntity into a tuple of strings.
 
     Parameters
@@ -98,10 +105,10 @@ def flatten_bioentity(entity: BioEntity) -> Tuple[str, str, str]:
 
     Returns
     -------
-    Tuple[str, str, str]
+    Tuple[str, str, str, str]
         A tuple of the flattened BioEntity. In order of curie, term, source.
     """
-    return entity.curie, entity.term, entity.type, entity.source
+    return entity.curie, entity.term, entity.labels, entity.source
 
 
 def flatten_edge(edge: Edge) -> Tuple[str, str, str, str, str]:

@@ -14,20 +14,25 @@ class SecondaryId:
     Attributes
     ----------
     name_space : str
-        The namespace of the secondary ID
+        The secondary ID's namespace
     id : str
         The ID of the secondary ID
     curie : str
         The CURIE of the secondary ID
     """
-    name_space: str
-    id: str
-    curie: str
-
-    def __init__(self, ns: str = '', id: str = '', curie: str = ''):
-        self.name_space = ns
+    def __init__(self, ns: str = '', id: str = ''):
+        self.ns = ns
         self.id = id
-        self.curie = curie
+
+    @property
+    def curie(self):
+        std_name, db_ref = standardize_name_db_refs({self.ns: self.id})
+        ns, id = get_grounding(db_ref)
+        if ns and id:
+            self.ns = ns
+            self.id = id
+
+        return curie_to_str(self.ns, self.id)
 
     def __eq__(self, other):
         if isinstance(other, SecondaryId):
@@ -147,14 +152,13 @@ class Node:
 
     def __init__(
             self,
-            type: str,
             source: str,
             ns: str = None,
             id: str = None,
     ):
         self.ns: str = ns
         self.id: str = id
-        self.type: str = type
+        self.labels: list[str] = []
         self.source: Optional[str] = source
 
     @property
@@ -181,7 +185,7 @@ class Trial(Node):
         The source registry of the trial
     title: str
         The title of the trial
-    type: str
+    labels: str
         The type of the trial
     design: Union[DesignInfo, str]
         The design information of the trial
@@ -203,8 +207,13 @@ class Trial(Node):
     id: str
         The ID of the trial
     """
-    def __init__(self, ns: str, id: str, type: Optional[str] = None, source: Optional[str] = None):
-        super().__init__(ns=ns, id=id, type=type, source=source)
+    def __init__(self, ns: str, id: str, labels: list[str] = None, source: Optional[str] = None):
+        super().__init__(ns=ns, id=id, source=source)
+        self.labels = ['clinicaltrial']
+
+        if labels:
+            self.labels.extend(labels)
+
         self.title: Optional[str] = None
         self.design: Optional[DesignInfo, str] = None
         self.conditions: list = []
@@ -254,13 +263,14 @@ class BioEntity(Node):
     def __init__(
             self,
             term: str,
-            type: str,
+            labels: list[str],
             origin: str,
             source: str,
             ns: Optional[str] = None,
             id: Optional[str] = None,
     ):
-        super().__init__(ns=ns, id=id, type=type, source=source)
+        super().__init__(ns=ns, id=id, source=source)
+        self.labels = ['bioentity'].extend(labels)
         self.term: str = term
         self.origin: str = origin
         self.source: str = source

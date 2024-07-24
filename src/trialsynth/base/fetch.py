@@ -9,6 +9,7 @@ import pickle
 logger = logging.getLogger(__name__)
 
 
+# noinspection PyTypeChecker
 class BaseFetcher:
     """Base class for fetching data from an API and transforming it into a list of :class:`Trial` objects
 
