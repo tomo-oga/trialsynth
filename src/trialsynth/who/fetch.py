@@ -3,16 +3,16 @@ import csv
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from ..base.fetch import BaseFetcher, logger
+from ..base.fetch import Fetcher, logger
 from ..base.config import Config
-from ..base.models import Trial as WhoTrial
+from ..base.models import Trial
 from ..base.models import BioEntity, Outcome, SecondaryId, DesignInfo
 from ..base.util import make_str, make_list
 
 from ..base.util import NAMESPACES
 
 
-class Fetcher(BaseFetcher):
+class WhoFetcher(Fetcher):
     def __init__(self, config: Config):
         super().__init__(config)
 
@@ -61,8 +61,7 @@ class Fetcher(BaseFetcher):
 
                     trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-")
 
-
-                    who_trial = WhoTrial(prefix, trial_id)
+                    who_trial = Trial(prefix, trial_id)
 
                     who_trial.title = make_str(trial[3])
                     who_trial.labels.append(make_str(trial[18]))

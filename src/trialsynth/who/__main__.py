@@ -6,7 +6,7 @@ from ..base.process import Processor
 from ..base.ground import PreProcessor
 from ..base.ground import intervention_namespaces, condition_namespaces
 
-from .fetch import Fetcher
+from .fetch import WhoFetcher
 
 
 def _preprocess_intervention(intervention: BioEntity) -> BioEntity:
@@ -31,7 +31,7 @@ def main(reload: bool, store_samples: bool, validate: bool):
     config = Config(registry='who')
     processor = Processor(
         config=config,
-        fetcher=Fetcher(config),
+        fetcher=WhoFetcher(config),
         condition_preprocessor=preprocess_intervention(),
         condition_namespaces=condition_namespaces,
         intervention_namespaces=intervention_namespaces,
