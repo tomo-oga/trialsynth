@@ -3,10 +3,8 @@ from typing import Optional
 
 import bioregistry
 import logging
-from .ground import condition_namespaces, intervention_namespaces
 
 logger = logging.getLogger(__name__)
-
 
 ct_namespaces = {
     # -- Clinical trial registries -- #
@@ -44,10 +42,14 @@ ct_namespaces = {
     "PER": "repec",  # Clinical Trials Peruvian Registry
 }
 
+# TODO: consider having namespaces be user-mutable in the future with ini file
+
+CONDITION_NS = ['MESH', 'DOID', 'EFO', 'HP', 'GO']
+INTERVENTION_NS = ['CHEBI', 'MESH', 'EFO', 'HGNC']
 
 def get_namespaces() -> dict:
     """Get the namespaces for the clinical trial registries and bioentity ontologies"""
-    entity_namespaces = list(set(condition_namespaces + intervention_namespaces))
+    entity_namespaces = CONDITION_NS + INTERVENTION_NS
 
     for ns in entity_namespaces:
         ct_namespaces[ns] = ns.lower()
@@ -113,3 +115,30 @@ def make_str(s: str) -> Optional[str]:
         s = s.removeprefix('"').removesuffix('"')
         return s.strip()
     return
+
+
+def must_override(method):
+    """Decorator to ensure that a method is implemented in a subclass
+
+    Parameters
+    ----------
+    method : function
+        The method to check for implementation
+
+    Returns
+    -------
+    function
+        The wrapper function
+
+    Raises
+    ------
+    NotImplementedError
+        If the method is not implemented in the subclass
+    """
+    def wrapper(*args, **kwargs):
+        cls = args[0].__class__
+        if method.__name__ in cls.__dict__:
+            raise NotImplementedError(f"Class '{cls.__name__}' must override method '{method.__name__}'")
+        return method(*args, **kwargs)
+
+    return wrapper

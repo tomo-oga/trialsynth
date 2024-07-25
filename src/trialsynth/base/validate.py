@@ -39,6 +39,9 @@ class Validator:
         self.data: pd.DataFrame = pd.DataFrame()
         self.catch_exceptions: bool = catch_exceptions
 
+    def __call__(self, path: Path):
+        self.validate(path)
+
     def validate(self, path: Path):
         self.path = path
 
@@ -60,8 +63,6 @@ class Validator:
                 chunks.append(chunk)
                 pbar.update(len(chunk))
         self.data = pd.concat(chunks, ignore_index=True)
-
-
 
     def validate_headers(self) -> None:
         """Check for data types in the headers
@@ -89,8 +90,6 @@ class Validator:
                 if dtype not in EXPECTED_TYPES:
                     raise UnknownTypeError(f"Invalid header type '{dtype}' for header {header}")
 
-
-
     def validate_data(self, data_type: str, value: Any):
         """Validate that the data type matches the value.
 
@@ -111,7 +110,7 @@ class Validator:
 
         null_data = [None, '']
         if value in null_data:
-            return
+            return ''
 
         if isinstance(value, str):
             value_list = value.split(';') if data_type.endswith('[]') else [value]

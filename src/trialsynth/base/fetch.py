@@ -1,16 +1,17 @@
 import logging
 import requests
-
+import pickle
 import gzip
 
 from .config import Config
 from .models import Trial
-import pickle
+from .util import must_override
+
 logger = logging.getLogger(__name__)
 
 
 # noinspection PyTypeChecker
-class BaseFetcher:
+class Fetcher:
     """Base class for fetching data from an API and transforming it into a list of :class:`Trial` objects
 
     Attributes
@@ -35,9 +36,16 @@ class BaseFetcher:
         self.url: str = config.api_url
         self.api_parameters: dict = {}
 
+    @must_override
     def get_api_data(self, reload: bool = False) -> None:
-        """Fetches data from an API, and transforms it into a list of :class:`Trial` objects"""
-        raise NotImplementedError("Must be defined in subclass")
+        """Fetches data from the API, and transforms it into a list of :class:`Trial` objects
+
+        Parameters
+        ----------
+        reload : bool
+            Whether to reload the data from the API
+        """
+        pass
 
     def save_raw_data(self):
         """Pickles raw trial data as a list of :class:`Trial` objects to disk"""

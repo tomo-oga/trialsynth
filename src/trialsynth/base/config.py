@@ -1,15 +1,11 @@
-import sys
-import logging
-from pathlib import Path
 import os
-
+import logging
 import shutil
+from pathlib import Path
 from typing import Union
 
-if sys.version_info[0] == 3:
-    from configparser import RawConfigParser
-else:
-    from ConfigParser import RawConfigParser
+from configparser import RawConfigParser
+
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +203,7 @@ class Config:
 
     def get_sample_path(self, filename: str) -> Path:
         """Get the full path to a file in the sample directory
+
         Parameters
         ----------
         filename: str

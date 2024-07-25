@@ -7,10 +7,11 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from .config import Config
-from .fetch import BaseFetcher
+from .fetch import Fetcher
 from .models import Trial, Edge, BioEntity
-from .ground import ground_entity, PreProcessor
+from .ground import Grounder
 from .validate import Validator
+from .transform import Transformer
 
 from . import store
 from . import transform
@@ -29,10 +30,10 @@ class Processor:
         User-mutable properties of registry data processing
     fetcher : Fetcher
         Fetches registry data from the REST API or a saved file
-    condition_namespaces : Optional[list[str]]
-        Namespaces to use for grounding conditions
-    intervention_namespaces : Optional[list[str]]
-        Namespaces to use for grounding
+    condition_grounder : Grounder
+        Grounds conditions using a condition preprocessor
+    intervention_grounder : Grounder
+        Grounds interventions using an intervention preprocessor
     conditions : list[BioEntity]
         List of conditions from the trials to be grounded
     interventions : list[BioEntity]
@@ -69,28 +70,26 @@ class Processor:
     def __init__(
             self,
             config: Config,
-            fetcher: BaseFetcher,
-            condition_preprocessor: PreProcessor = lambda x: x,
-            intervention_preprocessor: PreProcessor = lambda x: x,
-            condition_namespaces: Optional[list[str]] = None,
-            intervention_namespaces: Optional[list[str]] = None,
+            fetcher: Fetcher,
+            transformer: Transformer,
+            condition_grounder: Grounder,
+            intervention_grounder: Grounder,
             reload_api_data: bool = False,
             store_samples: bool = False,
             validate: bool = True,
     ):
         self.config = config
         self.fetcher = fetcher
+        self.transformer = transformer
         self.validator = Validator()
 
         self.trials: list[Trial] = []
 
         self.curie_to_trial: Dict[str, Trial] = {}
 
-        self.condition_preprocessor: PreProcessor = condition_preprocessor
-        self.interventions_preprocessor: PreProcessor = intervention_preprocessor
+        self.condition_grounder = condition_grounder
+        self.intervention_grounder = intervention_grounder
 
-        self.condition_namespaces: Optional[list[str]] = condition_namespaces
-        self.intervention_namespaces: Optional[list[str]] = intervention_namespaces
 
         self.conditions: list[BioEntity] = []
         self.interventions: list[BioEntity] = []
@@ -156,12 +155,7 @@ class Processor:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[condition.origin]
                 conditions = list(
-                    ground_entity(
-                        condition,
-                        preprocessor=self.condition_preprocessor,
-                        namespaces=self.condition_namespaces,
-                        context=trial.title
-                    )
+                    self.condition_grounder(condition, trial.title)
                 )
                 trial.conditions.extend(conditions)
 
@@ -174,13 +168,8 @@ class Processor:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[intervention.origin]
                 interventions = list(
-                    ground_entity(
-                        intervention,
-                        preprocessor=self.interventions_preprocessor,
-                        namespaces=self.intervention_namespaces,
-                        context=trial.title
-                ))
-
+                    self.intervention_grounder(intervention, trial.title)
+                )
                 trial.interventions.extend(interventions)
 
     def create_edges(self):
@@ -210,7 +199,7 @@ class Processor:
         -------
         None
         """
-        data = [transform.flatten_trial_data(trial) for trial in self.trials]
+        data = [self.transformer.flatten_trial_data(trial) for trial in self.trials]
 
         headers = [
             'curie:CURIE',
@@ -223,7 +212,7 @@ class Processor:
             'secondary_outcome:OUTCOME[]',
             'secondary_ids:CURIE[]',
             'source_registry:string'
-            ]
+        ]
 
         store.save_data_as_flatfile(
             data,
@@ -253,7 +242,7 @@ class Processor:
             entities.extend([intervention for intervention in trial.interventions])
 
         entities = list(set(entities))
-        entities = [transform.flatten_bioentity(entity) for entity in entities if entity]
+        entities = [self.transformer.flatten_bioentity(entity) for entity in entities if entity]
         store.save_data_as_flatfile(
             entities,
             path=path,
@@ -276,7 +265,7 @@ class Processor:
         -------
         None
         """
-        edges = [transform.flatten_edge(edge) for edge in self.edges]
+        edges = [self.transformer.flatten_edge(edge) for edge in self.edges]
 
         store.save_data_as_flatfile(
             sorted(edges),

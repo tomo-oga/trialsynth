@@ -1,8 +1,9 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
 import requests
+from overrides import overrides
 
 from .rest_api_response_models import UnflattenedTrial
-from ..base.fetch import BaseFetcher, logger
+from ..base.fetch import Fetcher, logger
 from ..base.config import Config
 
 from tqdm import tqdm
@@ -10,7 +11,7 @@ from tqdm import tqdm
 from ..base.models import Trial, BioEntity, SecondaryId, DesignInfo, Outcome
 
 
-class Fetcher(BaseFetcher):
+class CTFetcher(Fetcher):
     """Fetches data from the Clinicaltrials.gov REST API and transforms it into a list of :class:`Trial` objects
 
     Attributes
@@ -38,8 +39,8 @@ class Fetcher(BaseFetcher):
         }
         self.total_pages = 0
 
-    def get_api_data(self, reload: bool = False) -> None:
-        """Fetches data from the Clinicaltrials.gov REST API, and transforms it into a list of :class:`Trial` objects"""
+    @overrides
+    def get_api_data(self, reload: bool = False, *kwargs) -> None:
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()
@@ -55,7 +56,7 @@ class Fetcher(BaseFetcher):
             with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial',
                       unit_scale=True) as pbar:
                 pbar.update(page_size)
-                for _ in range(int(pages)):
+                for _ in range(int(3)):
                     self._read_next_page()
                     pbar.update(page_size)
 
