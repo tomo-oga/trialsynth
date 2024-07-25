@@ -1,7 +1,7 @@
 import gilda
 import copy
 
-from typing import Callable, Iterator
+from typing import Callable, Iterator, Optional
 from indra.databases import mesh_client
 
 from .models import BioEntity
@@ -16,10 +16,28 @@ PreProcessor = Callable[[BioEntity], BioEntity]
 
 def ground_entity(
         entity: BioEntity,
-        preprocessor: Callable[[BioEntity], BioEntity] = lambda x: x,
-        namespaces: list[str] = None,
-        trial_title: str = None
+        preprocessor: PreProcessor,
+        namespaces: Optional[list[str]] = None,
+        context: Optional[str] = None
 ) -> Iterator[BioEntity]:
+    """Ground a BioEntity using Gilda and NER to a namespace and id
+
+    Parameters
+    ----------
+    entity : BioEntity
+        The entity to ground
+    preprocessor : PreProcessor
+        A function to preprocess the entity before grounding
+    namespaces : list[str]
+        The namespaces to ground to (default: None).
+    context : Optional[str]
+        The context to use for grounding (default: None).
+
+    Yields
+    ------
+    BioEntity
+        The grounded entity
+    """
     # if already a grounded mesh term, ensure that it is right
     entity = preprocessor(entity)
     if entity.ns == 'MESH' and entity.id:
@@ -37,7 +55,7 @@ def ground_entity(
                 yield entity
     else:
         # if not grounded term, ground using gilda and ner
-        matches = gilda.ground(entity.term, namespaces=namespaces, context=trial_title)
+        matches = gilda.ground(entity.term, namespaces=namespaces, context=context)
 
         # if a match is found, use and yield:
         if matches:
@@ -46,7 +64,7 @@ def ground_entity(
             yield entity
         # if no match is found, try ner:
         else:
-            annotations = gilda.annotate(entity.term, namespaces=namespaces, context_text=trial_title)
+            annotations = gilda.annotate(entity.term, namespaces=namespaces, context_text=context)
             for _, match, *_ in annotations:
                 match = match.term
                 annotated_entity = copy.deepcopy(entity)

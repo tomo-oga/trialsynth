@@ -32,8 +32,6 @@ class Config:
         The name of the registry for which the configuration is being created.
     config_dict : dict
         The configuration dictionary.
-    store_samples : bool
-        Whether to store samples of the data.
     data_dir : Path
         The directory where the data is stored.
     sample_dir : Path
@@ -84,13 +82,13 @@ class Config:
 
         self.api_url: str = self.get_config('API_URL')
         self.api_fields = ','.join([field.strip() for field in self.get_config('API_FIELDS').split(',')])
+        self.api_parameters: dict = {}
 
         root = logging.getLogger()
         root.setLevel(self.get_config('LOGGING_LEVEL'))
 
     def _create_data_dir(self):
-        """Create the data directory if it doesn't exist
-        """
+        """Create the data directory if it doesn't exist"""
         home_dir = os.path.expanduser('~')
         data_dir = os.path.join(home_dir, '.data', 'trialsynth', self.registry)
 
@@ -103,8 +101,7 @@ class Config:
         return data_dir
 
     def _create_config_dict(self):
-        """Load the configuration file into the config_file dictionary
-        """
+        """Load the configuration file into the config_file dictionary"""
         home_dir = os.path.expanduser('~')
         config_dir = os.path.join(home_dir, '.config', 'trialsynth', self.registry)
         config_path = os.path.join(config_dir, 'config.ini')
@@ -205,7 +202,6 @@ class Config:
         -------
         Path
             The full path to the file in the data directory
-
         """
         return Path(self.data_dir, filename)
 

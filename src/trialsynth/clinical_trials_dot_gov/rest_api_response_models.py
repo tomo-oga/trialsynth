@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 
 
-
 class SecondaryID(BaseModel):
 
     id_type: str = Field(alias="type")
@@ -103,14 +102,17 @@ class ProtocolSection(BaseModel):
     id_module: IDModule = Field(alias="identificationModule")
     conditions_module: ConditionsModule = Field(alias="conditionsModule", default=ConditionsModule())
     design_module: DesignModule = Field(alias="designModule", default=DesignModule())
-    arms_interventions_module: ArmsInterventionsModule = Field(alias="armsInterventionsModule", default=ArmsInterventionsModule())
+    arms_interventions_module: ArmsInterventionsModule = Field(alias="armsInterventionsModule",
+                                                               default=ArmsInterventionsModule())
     outcomes_module: OutcomesModule = Field(alias='outcomesModule', default=OutcomesModule())
 
 
 class DerivedSection(BaseModel):
 
-    condition_browse_module: ConditionBrowseModule = Field(alias="conditionBrowseModule", default=ConditionBrowseModule())
-    intervention_browse_module: InterventionBrowseModule = Field(alias="interventionBrowseModule", default=InterventionBrowseModule())
+    condition_browse_module: ConditionBrowseModule = Field(alias="conditionBrowseModule",
+                                                           default=ConditionBrowseModule())
+    intervention_browse_module: InterventionBrowseModule = Field(alias="interventionBrowseModule",
+                                                                 default=InterventionBrowseModule())
 
 
 class UnflattenedTrial(BaseModel):

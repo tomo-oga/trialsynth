@@ -13,19 +13,24 @@ class SecondaryId:
 
     Attributes
     ----------
-    name_space : str
+    ns : str
         The secondary ID's namespace
     id : str
         The ID of the secondary ID
-    curie : str
-        The CURIE of the secondary ID
     """
     def __init__(self, ns: str = '', id: str = ''):
         self.ns = ns
         self.id = id
 
     @property
-    def curie(self):
+    def curie(self) -> str:
+        """Creates a CURIE from the namespace and ID
+
+        Returns
+        -------
+        str
+            The CURIE
+        """
         std_name, db_ref = standardize_name_db_refs({self.ns: self.id})
         ns, id = get_grounding(db_ref)
         if ns and id:
@@ -129,7 +134,6 @@ class Outcome:
 
 # types of all nodes should be standardized to a class holding enumerations in the future.
 
-# noinspection PyTypeChecker
 class Node:
     """Node for a trial or bioentity
 
@@ -139,15 +143,17 @@ class Node:
         The namespace of the node
     id : str
         The ID of the node
+    labels : list[str]
+        The labels of the node (default: []).
     source : Optional[str]
         The source registry of the node
 
     Parameters
     ----------
-    ns : Optional[str]
-        The namespace of the node
-    id : Optional[str]
-        The ID of the node
+    ns : str
+        The namespace of the node (default: None).
+    id : str
+        The ID of the node (default: None).
     """
 
     def __init__(
@@ -159,10 +165,11 @@ class Node:
         self.ns: str = ns
         self.id: str = id
         self.labels: list[str] = []
-        self.source: Optional[str] = source
+        self.source: str = source
 
     @property
-    def curie(self):
+    def curie(self) -> str:
+        """Creates a CURIE from the namespace and ID"""
         std_name, db_ref = standardize_name_db_refs({self.ns: self.id})
         ns, id = get_grounding(db_ref)
         if ns and id:
@@ -181,12 +188,12 @@ class Trial(Node):
         The namespace of the trial
     id: str
         The ID of the trial
+    labels: list[str]
+        The labels of the trial (default: ['clinicaltrial']).
     source: Optional[str]
-        The source registry of the trial
+        The source registry of the trial (default: None).
     title: str
         The title of the trial
-    labels: str
-        The type of the trial
     design: Union[DesignInfo, str]
         The design information of the trial
     conditions: list
@@ -202,25 +209,29 @@ class Trial(Node):
 
     Parameters
     ----------
-    ns: str
+    ns : str
         The namespace of the trial
-    id: str
+    id : str
         The ID of the trial
+    labels : Optional[list[str]]
+        The labels of the trial (default: None).
+    source : Optional[str]
+        The source registry of the trial (default: None).
     """
-    def __init__(self, ns: str, id: str, labels: list[str] = None, source: Optional[str] = None):
+    def __init__(self, ns: str, id: str, labels: Optional[list[str]] = None, source: Optional[str] = None):
         super().__init__(ns=ns, id=id, source=source)
-        self.labels = ['clinicaltrial']
+        self.labels: list[str] = ['clinicaltrial']
 
         if labels:
             self.labels.extend(labels)
 
         self.title: Optional[str] = None
         self.design: Optional[DesignInfo, str] = None
-        self.conditions: list = []
-        self.interventions: list = []
-        self.primary_outcomes: list[Union[Outcome, str]] = []
-        self.secondary_outcomes: list[Union[Outcome, str]] = []
-        self.secondary_ids: Union[list[SecondaryId], list[str]] = []
+        self.conditions: list[BioEntity] = []
+        self.interventions: list[BioEntity] = []
+        self.primary_outcomes: list[Outcome] = []
+        self.secondary_outcomes: list[Outcome] = []
+        self.secondary_ids: list[SecondaryId] = []
 
     def __eq__(self, other):
         if isinstance(other, Trial):
@@ -249,16 +260,18 @@ class BioEntity(Node):
 
     Parameters
     ----------
-    ns: str
-        The namespace of the bioentity
-    id: str
-        The ID of the bioentity
     term: str
         The text term of the bioentity from the given namespace
-    origin: Optional[str]
+    labels: list[str]
+        The labels of the bioentity
+    origin: str
         The trial CURIE that the bioentity is associated with
     source: Optional[str]
-        The source registry of the bioentity
+        The source registry of the bioentity.
+    ns: Optional[str]
+        The namespace of the bioentity (default: None).
+    id: Optional[str]
+        The ID of the bioentity (default: None).
     """
     def __init__(
             self,
@@ -270,7 +283,8 @@ class BioEntity(Node):
             id: Optional[str] = None,
     ):
         super().__init__(ns=ns, id=id, source=source)
-        self.labels = ['bioentity'].extend(labels)
+        self.labels = ['bioentity']
+        self.labels.extend(labels)
         self.term: str = term
         self.origin: str = origin
         self.source: str = source

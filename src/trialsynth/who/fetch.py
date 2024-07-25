@@ -17,6 +17,17 @@ class Fetcher(BaseFetcher):
         super().__init__(config)
 
     def get_api_data(self, reload: bool = False):
+        """Fetches data from the WHO ICTRP CSV file and transforms it into a list of :class:`Trial` objects
+
+        Parameters
+        ----------
+        reload : bool
+            Whether to reload the data from the API
+
+        Returns
+        -------
+        None
+        """
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()

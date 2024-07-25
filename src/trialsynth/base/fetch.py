@@ -23,6 +23,11 @@ class BaseFetcher:
         Parameters to send with the API request
     config : Config
         User-mutable properties of registry data processing
+
+    Parameters
+    ----------
+    config : Config
+        User-mutable properties of registry data processing
     """
     def __init__(self, config: Config):
         self.config: Config = config

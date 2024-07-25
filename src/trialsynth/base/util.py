@@ -46,6 +46,7 @@ ct_namespaces = {
 
 
 def get_namespaces() -> dict:
+    """Get the namespaces for the clinical trial registries and bioentity ontologies"""
     entity_namespaces = list(set(condition_namespaces + intervention_namespaces))
 
     for ns in entity_namespaces:
@@ -55,10 +56,9 @@ def get_namespaces() -> dict:
 
 NAMESPACES = get_namespaces()
 
+
 def get_patterns() -> dict:
-    """
-    Get compiled regular expression patterns for the prefixes
-    """
+    """Get compiled regular expression patterns for the prefixes of the namespaces"""
     rv = {}
     for k, v in NAMESPACES.items():
         if not v:
@@ -72,6 +72,7 @@ def get_patterns() -> dict:
 
 
 PATTERNS = get_patterns()
+
 
 def make_list(s: Optional[str], delimeter: str = '.') -> list:
     """Create a list of values from an element joined by a dilemeter

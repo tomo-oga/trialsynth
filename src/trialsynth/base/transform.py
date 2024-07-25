@@ -1,5 +1,5 @@
 from typing import Tuple, Iterable
-from .models import Trial, BioEntity, Edge
+from .models import Trial, BioEntity, Edge, Node
 
 
 def transform_secondary_ids(trial: Trial) -> str:
@@ -56,9 +56,9 @@ def transform_design(trial: Trial) -> str:
             f'Assignment: {trial.design.assignment.strip() if trial.design.assignment else ""}')
 
 
-def transform_labels(trial: Trial) -> str:
+def transform_labels(node: Node) -> str:
     """Transforms the type of trial into a string."""
-    return ';'.join([label for label in trial.labels])
+    return ';'.join([label for label in node.labels])
 
 
 def transform_title(trial: Trial) -> str:
@@ -108,7 +108,7 @@ def flatten_bioentity(entity: BioEntity) -> Tuple[str, str, str, str]:
     Tuple[str, str, str, str]
         A tuple of the flattened BioEntity. In order of curie, term, source.
     """
-    return entity.curie, entity.term, entity.labels, entity.source
+    return entity.curie, entity.term, transform_labels(entity), entity.source
 
 
 def flatten_edge(edge: Edge) -> Tuple[str, str, str, str, str]:

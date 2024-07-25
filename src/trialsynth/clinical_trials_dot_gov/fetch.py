@@ -11,6 +11,24 @@ from ..base.models import Trial, BioEntity, SecondaryId, DesignInfo, Outcome
 
 
 class Fetcher(BaseFetcher):
+    """Fetches data from the Clinicaltrials.gov REST API and transforms it into a list of :class:`Trial` objects
+
+    Attributes
+    ----------
+    raw_data : list[Trial]
+        Raw data from the API
+    url : str
+        URL of the API endpoint
+    api_parameters : dict
+        Parameters to send with the API request
+    config : Config
+        User-mutable properties of registry data processing
+
+    Parameters
+    ----------
+    config : Config
+        User-mutable properties of registry data processing
+    """
     def __init__(self, config: Config):
         super().__init__(config)
         self.api_parameters = {
@@ -21,6 +39,7 @@ class Fetcher(BaseFetcher):
         self.total_pages = 0
 
     def get_api_data(self, reload: bool = False) -> None:
+        """Fetches data from the Clinicaltrials.gov REST API, and transforms it into a list of :class:`Trial` objects"""
         trial_path = self.config.raw_data_path
         if trial_path.is_file() and not reload:
             self.load_saved_data()
@@ -33,7 +52,8 @@ class Fetcher(BaseFetcher):
 
             pages = self.total_pages
             page_size = self.api_parameters.get('pageSize')
-            with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial', unit_scale=True) as pbar:
+            with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial',
+                      unit_scale=True) as pbar:
                 pbar.update(page_size)
                 for _ in range(int(pages)):
                     self._read_next_page()
