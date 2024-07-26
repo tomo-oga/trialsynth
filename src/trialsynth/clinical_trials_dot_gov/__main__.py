@@ -1,6 +1,5 @@
-import click
-
-from .process import CTProcessor, run_processor
+from .process import CTProcessor
+from ..base.process import run_processor
 
 
 @run_processor

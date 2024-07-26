@@ -56,7 +56,7 @@ class CTFetcher(Fetcher):
             with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial',
                       unit_scale=True) as pbar:
                 pbar.update(page_size)
-                for _ in range(int(pages)):
+                for _ in range(1):
                     self._read_next_page()
                     pbar.update(page_size)
 

@@ -94,6 +94,7 @@ class Processor:
             transformer: Transformer,
             condition_grounder: Grounder,
             intervention_grounder: Grounder,
+            validator: Validator,
             reload_api_data: bool = False,
             store_samples: bool = False,
             validate: bool = True,
@@ -326,8 +327,8 @@ class Processor:
     def validate_data(self):
         """Validates the processed data using the Validator object."""
         logger.info(f'Validating trial data.')
-        self.validator.validate(self.config.trials_path)
+        self.validator(self.config.trials_path)
         logger.info(f'Validating bioentity data.')
-        self.validator.validate(self.config.bio_entities_path)
+        self.validator(self.config.bio_entities_path)
         logger.info(f'Validating edge data.')
-        self.validator.validate(self.config.edges_path)
+        self.validator(self.config.edges_path)
