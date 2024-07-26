@@ -85,6 +85,7 @@ class Config:
 
     def _create_data_dir(self):
         """Create the data directory if it doesn't exist"""
+
         home_dir = os.path.expanduser('~')
         data_dir = os.path.join(home_dir, '.data', 'trialsynth', self.registry)
 
@@ -98,6 +99,7 @@ class Config:
 
     def _create_config_dict(self):
         """Load the configuration file into the config_file dictionary"""
+
         home_dir = os.path.expanduser('~')
         config_dir = os.path.join(home_dir, '.config', 'trialsynth', self.registry)
         config_path = os.path.join(config_dir, 'config.ini')
@@ -148,8 +150,9 @@ class Config:
         config_dict['SOURCE_KEY'] = self.registry
         return config_dict
 
-    def get_config(self, key: str, failure_ok: bool = True) -> Union[Path, str, int]:
+    def get_config(self, key: str, failure_ok: bool = True) -> Union[Path, str, int, None]:
         """Get a configuration value from the environment or config file.
+
         Parameters
         ----------
         key : str

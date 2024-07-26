@@ -10,7 +10,6 @@ from .util import must_override
 logger = logging.getLogger(__name__)
 
 
-# noinspection PyTypeChecker
 class Fetcher:
     """Base class for fetching data from an API and transforming it into a list of :class:`Trial` objects
 
