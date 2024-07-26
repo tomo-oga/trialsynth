@@ -4,7 +4,7 @@ from .models import Trial, BioEntity, Edge, Node
 
 class Transformer:
 
-    def flatten_trial_data(self, trial: Trial) -> Tuple:
+    def flatten_trial_data(self, trial: Trial) -> Tuple[str, str, str, str, str, str, str, str, str, str]:
         """Flattens trial data into a tuple of strings.
 
         Parameters
@@ -31,7 +31,6 @@ class Transformer:
             self.transform_secondary_ids(trial),
             trial.source
         )
-
 
     @staticmethod
     def transform_secondary_ids(trial: Trial) -> str:

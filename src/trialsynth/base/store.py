@@ -17,7 +17,7 @@ def save_data_as_flatfile(
         headers: list[str],
         sample_path: Optional[Path] = None,
         num_samples: Optional[int] = None
-):
+) -> None:
     """Saves data to disk as compressed TSV
 
     Parameters

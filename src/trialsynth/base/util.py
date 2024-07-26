@@ -47,6 +47,7 @@ ct_namespaces = {
 CONDITION_NS = ['MESH', 'DOID', 'EFO', 'HP', 'GO']
 INTERVENTION_NS = ['CHEBI', 'MESH', 'EFO', 'HGNC']
 
+
 def get_namespaces() -> dict:
     """Get the namespaces for the clinical trial registries and bioentity ontologies"""
     entity_namespaces = CONDITION_NS + INTERVENTION_NS

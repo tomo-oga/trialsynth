@@ -19,7 +19,7 @@ from . import store
 logger = logging.getLogger(__name__)
 
 
-def run_processor(func: Callable[[bool, bool, bool], None]):
+def run_processor(func: Callable[[bool, bool, bool], None]) -> Callable[[bool, bool, bool], None]:
     @click.command()
     @click.option('-r', '--reload', is_flag=True, default=False, help='Reload data from the API')
     @click.option('-s', '--store-samples', is_flag=True, default=False, help='Store samples')
@@ -165,7 +165,8 @@ class Processor:
                 conditions = list(
                     self.condition_grounder(condition, trial.title)
                 )
-                trial.conditions.extend(conditions)
+                curie_to_condition = {condition.curie: condition for condition in conditions}
+                trial.conditions.extend(curie_to_condition.values())
 
     def process_interventions(self):
         """Processes interventions by grounding them using the intervention preprocessor."""
@@ -178,7 +179,8 @@ class Processor:
                 interventions = list(
                     self.intervention_grounder(intervention, trial.title)
                 )
-                trial.interventions.extend(interventions)
+                curie_to_intervention = {intervention.curie: intervention for intervention in interventions}
+                trial.interventions.extend(curie_to_intervention.values())
 
     def create_edges(self):
         """Creates edges connecting trials to conditions and interventions."""
@@ -207,7 +209,7 @@ class Processor:
         -------
         None
         """
-        data = [self.transformer.flatten_trial_data(trial) for trial in self.trials]
+        data = [self.transformer.flatten_trial_data(trial) for trial in self.curie_to_trial.values()]
 
         headers = [
             'curie:CURIE',

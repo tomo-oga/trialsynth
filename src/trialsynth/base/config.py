@@ -2,7 +2,7 @@ import os
 import logging
 import shutil
 from pathlib import Path
-from typing import Union
+from typing import Union, Dict, Optional
 
 from configparser import RawConfigParser
 
@@ -83,8 +83,14 @@ class Config:
         root = logging.getLogger()
         root.setLevel(self.get_config('LOGGING_LEVEL'))
 
-    def _create_data_dir(self):
-        """Create the data directory if it doesn't exist"""
+    def _create_data_dir(self) -> Path:
+        """Create the data directory if it doesn't exist
+
+        Returns
+        -------
+        Path
+            The path to the data directory
+        """
 
         home_dir = os.path.expanduser('~')
         data_dir = os.path.join(home_dir, '.data', 'trialsynth', self.registry)
@@ -95,9 +101,9 @@ class Config:
             except Exception:
                 logger.warning(data_dir + ' already exists')
 
-        return data_dir
+        return Path(data_dir)
 
-    def _create_config_dict(self):
+    def _create_config_dict(self) -> Optional[Dict[str, str]]:
         """Load the configuration file into the config_file dictionary"""
 
         home_dir = os.path.expanduser('~')

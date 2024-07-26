@@ -74,14 +74,11 @@ class Grounder:
         return self.ground(entity, context)
 
 
-
-
-
 class ConditionGrounder(Grounder):
     def __init__(self):
         super().__init__(namespaces=CONDITION_NS)
 
 
 class InterventionGrounder(Grounder):
-    def __init__(self, preprocessor: Callable[[BioEntity], BioEntity] = None):
+    def __init__(self):
         super().__init__(namespaces=INTERVENTION_NS)
