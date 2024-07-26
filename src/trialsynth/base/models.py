@@ -143,7 +143,7 @@ class Node:
             self.ns = ns
             self.id = id
 
-        return curie_to_str(self.ns, self.id)
+        return curie_to_str(self.ns.lower(), self.id)
 
     def match(self, other: 'Node') -> bool:
         return self.curie == other.curie
