@@ -18,7 +18,7 @@ class SecondaryId:
     id : str
         The ID of the secondary ID
     """
-    def __init__(self, ns: str = '', id: str = ''):
+    def __init__(self, ns: str = None, id: str = None):
         self.ns = ns
         self.id = id
 
@@ -119,7 +119,7 @@ class Outcome:
     time_frame : str
         The time frame of the outcome
     """
-    def __init__(self, measure: str = '', time_frame: str = ''):
+    def __init__(self, measure: str = None, time_frame: str = None):
         self.measure = measure
         self.time_frame = time_frame
 

@@ -1,8 +1,9 @@
+import click
 import logging
-
 from pathlib import Path
 from typing import Dict, Optional, Callable
 
+import gilda
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
@@ -14,11 +15,19 @@ from .validate import Validator
 from .transform import Transformer
 
 from . import store
-from . import transform
-
-import gilda
 
 logger = logging.getLogger(__name__)
+
+
+def run_processor(func: Callable[[bool, bool, bool], None]):
+    @click.command()
+    @click.option('-r', '--reload', is_flag=True, default=False, help='Reload data from the API')
+    @click.option('-s', '--store-samples', is_flag=True, default=False, help='Store samples')
+    @click.option('-v', '--validate', is_flag=True, default=False, help='Validate the data')
+    def wrapper(reload: bool, store_samples: bool, validate: bool):
+        return func(reload, store_samples, validate)
+
+    return wrapper
 
 
 class Processor:
@@ -89,7 +98,6 @@ class Processor:
 
         self.condition_grounder = condition_grounder
         self.intervention_grounder = intervention_grounder
-
 
         self.conditions: list[BioEntity] = []
         self.interventions: list[BioEntity] = []

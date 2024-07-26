@@ -1,4 +1,4 @@
-from ..base.process import Processor
+from ..base.process import Processor, run_processor
 
 from .transform import CTTransformer
 from .config import CTConfig

@@ -1,12 +1,9 @@
 import click
 
-from .process import CTProcessor
+from .process import CTProcessor, run_processor
 
 
-@click.command()
-@click.option('-r', '--reload', default=False)
-@click.option('-s', '--store-samples', default=False)
-@click.option('-v', '--validate', default=True)
+@run_processor
 def main(reload: bool, store_samples: bool, validate: bool):
 
     CTProcessor(reload_api_data=reload, store_samples=store_samples, validate=validate).run()

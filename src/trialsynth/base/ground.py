@@ -26,7 +26,7 @@ class Grounder:
         self.namespaces: Optional[list[str]] = namespaces
 
     @must_override
-    def preprocess(self, entity: BioEntity) -> BioEntity:
+    def preprocess(self, entity: BioEntity, *kwargs) -> BioEntity:
         pass
 
     def ground(self, entity: BioEntity, context: Optional[str]) -> Iterator[BioEntity]:
@@ -45,7 +45,7 @@ class Grounder:
             The grounded BioEntity.
         """
         entity = self.preprocess(entity)
-        if entity.ns == 'MESH' and entity.id:
+        if entity.ns and entity.ns.upper() == 'MESH' and entity.id:
             if mesh_client.get_mesh_name(entity.id, offline=True):
                 yield entity
             else:
