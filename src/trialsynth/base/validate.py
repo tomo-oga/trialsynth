@@ -122,7 +122,7 @@ class Validator:
 
         if data_type == 'string':
             for val in value_list:
-                if isinstance(val, int):
+                if isinstance(val, int, float):
                     try:
                         val = str(val)
                     except ValueError:

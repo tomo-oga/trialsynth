@@ -20,6 +20,19 @@ logger = logging.getLogger(__name__)
 
 
 def run_processor(func: Callable[[bool, bool, bool], None]) -> Callable[[bool, bool, bool], None]:
+    """
+    A decorator that wraps a function for running a processor.
+
+    Parameters
+    ----------
+    func : Callable[[bool, bool, bool], None]
+        The function to be wrapped.
+
+    Returns
+    -------
+    Callable[[bool, bool, bool], None]
+        The wrapped function with Click command options.
+    """
     @click.command()
     @click.option('-r', '--reload', is_flag=True, default=False, help='Reload data from the API')
     @click.option('-s', '--store-samples', is_flag=True, default=False, help='Store samples')
@@ -60,14 +73,12 @@ class Processor:
         User-mutable properties of registry data processing
     fetcher : Fetcher
         Fetches registry data from the REST API or a saved file
-    condition_preprocessor : PreProcessor
-        Logic to preprocess conditions before grounding
-    intervention_preprocessor : PreProcessor
-        Logic to preprocess interventions before grounding
-    condition_namespaces : Optional[list[str]]
-        Namespaces to use for grounding conditions
-    intervention_namespaces : Optional[list[str]]
-        Namespaces to use for grounding
+    transformer : Transformer
+        Serializes data into strings for storage
+    condition_grounder : Grounder
+        Grounds conditions into CURIEs
+    intervention_grounder : Grounder
+        Grounds interventions into CURIEs
     reload_api_data : bool
         Whether to reload the API data (default: False).
     store_samples : bool
