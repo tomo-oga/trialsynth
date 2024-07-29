@@ -3,7 +3,7 @@ import os
 from pydantic import ValidationError
 import pytest
 
-from src.trialsynth.clinical_trials_dot_gov import (
+from trialsynth.clinical_trials_dot_gov import (
     config,
     fetch
 )
@@ -24,5 +24,3 @@ def test_stability():
         fetch.CTFetcher(configuration)._read_next_page()
     except ValidationError as exc:
         pytest.fail(f"Unexpected error while flattening API response data: {exc}")
-
-
