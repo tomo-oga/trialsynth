@@ -7,7 +7,6 @@ from indra.ontology.standardize import standardize_name_db_refs
 
 logger = logging.getLogger(__name__)
 
-
 class SecondaryId:
     """Secondary ID for a trial
 
@@ -156,6 +155,10 @@ class Node:
 
         return curie_to_str(self.ns.lower(), self.id)
 
+    @curie.setter
+    def curie(self, curie: str):
+        self.ns, self.id = curie.split(':')
+
 
 class Trial(Node):
     """Holds information about a clinical trial
@@ -265,7 +268,26 @@ class BioEntity(Node):
         self.labels.extend(labels)
         self.term: str = term
         self.origin: str = origin
-        self.source: str = source
+
+
+class Criteria(Node):
+    def __init__(self, type: str, text: str, origin: str, source: str):
+        super().__init__(source=source)
+        self._type = None
+        self.type = type
+        self.text = text
+        self.origin = origin
+        self.labels = ['criteria']
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, type: str):
+        if type not in ['inclusion', 'exclusion']:
+            raise ValueError(f'Criteria type {type} not recognized')
+        self._type = type
 
 
 class Edge:

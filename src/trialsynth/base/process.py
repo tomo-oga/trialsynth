@@ -10,6 +10,7 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 from . import store
 from .config import Config
 from .fetch import Fetcher
+from .models import Trial, Edge, BioEntity, Criteria
 from .ground import Grounder
 from .models import BioEntity, Edge, Trial
 from .transform import Transformer
@@ -96,21 +97,22 @@ class Processor:
     """
 
     def __init__(
-        self,
-        config: Config,
-        fetcher: Fetcher,
-        transformer: Transformer,
-        condition_grounder: Grounder,
-        intervention_grounder: Grounder,
-        validator: Validator,
-        reload_api_data: bool = False,
-        store_samples: bool = False,
-        validate: bool = True,
+            self,
+            config: Config,
+            fetcher: Fetcher,
+            transformer: Transformer,
+            condition_grounder: Grounder,
+            intervention_grounder: Grounder,
+            criteria_grounder: Grounder,
+            validator: Validator,
+            reload_api_data: bool = False,
+            store_samples: bool = False,
+            validate: bool = True,
     ):
         self.config = config
         self.fetcher = fetcher
         self.transformer = transformer
-        self.validator = Validator()
+        self.validator = validator
 
         self.trials: list[Trial] = []
 
@@ -118,9 +120,11 @@ class Processor:
 
         self.condition_grounder = condition_grounder
         self.intervention_grounder = intervention_grounder
+        self.criteria_grounder = criteria_grounder
 
         self.conditions: list[BioEntity] = []
         self.interventions: list[BioEntity] = []
+        self.criteria: list[Criteria] = []
 
         self.edges: list[Edge] = []
 
@@ -157,13 +161,12 @@ class Processor:
 
             # should be refactored later to accept various connection types. i.e. criteria
             self.conditions.extend([condition for condition in trial.conditions])
-            self.interventions.extend(
-                [intervention for intervention in trial.interventions]
-            )
+            self.interventions.extend([intervention for intervention in trial.interventions])
 
             # clearing trial of entities for grounding
             trial.conditions = []
             trial.interventions = []
+            trial.criteria = []
 
             if trial.curie not in iterated_trials:
                 iterated_trials.add(trial.curie)
@@ -173,10 +176,11 @@ class Processor:
         """Processes bioentities by grounding them."""
         logger.info("Warming up grounder...")
         gilda.ground("stuff")
-        logger.info("Done.")
+        logger.info('Done.')
         self.process_conditions()
         self.process_interventions()
 
+    # TODO: Refactor to accept various connection types without needing to redefine a method. i.e. criteria
     def process_conditions(self):
         """Processes conditions by grounding them using the condition preprocessor."""
         condition_iter = tqdm(
@@ -214,6 +218,18 @@ class Processor:
                     intervention.curie: intervention for intervention in interventions
                 }
                 trial.interventions.extend(curie_to_intervention.values())
+
+    def process_criteria(self):
+        criteria_iter = tqdm(self.criteria, desc="Grounding Criteria", unit="criteria", unit_scale=True)
+
+        for criteria in criteria_iter:
+            with logging_redirect_tqdm():
+                trial = self.curie_to_trial[criteria.origin]
+                criteria = list(
+                    self.criteria_grounder(criteria, trial.title)
+                )
+                curie_to_criteria = {criteria.curie: criteria for criteria in criteria}
+                trial.criteria.extend(curie_to_criteria.values())
 
     def create_edges(self):
         """Creates edges connecting trials to conditions and interventions."""

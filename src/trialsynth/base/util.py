@@ -4,6 +4,8 @@ from typing import Optional
 
 import bioregistry
 
+from enum import Enum
+
 logger = logging.getLogger(__name__)
 
 ct_namespaces = {
@@ -28,7 +30,7 @@ ct_namespaces = {
     "JPRN-C": "uminctr",  # new ID format starting with C
     "Clinical Trials Information System": "ctis",
     "CTIS": "ctis",  # site broken
-    "LBCTR": "lctr",  # Lebanon Clinical Trials Registry
+    "LBCTR": "lbctr",  # Lebanon Clinical Trials Registry
     "ITMCTR": "itmctr",  # International Traditional Medicine Clinical Trial Registry
     "IRCT": "irct",  # Iranian clinical trials - IDs don't match web page
     "KCT": "kcris",
@@ -37,15 +39,15 @@ ct_namespaces = {
     "SLCTR": "slctr",  # need to change slashes to dashes to resolve
     "IFV": "rpcec",  # Cuba: Registro Público Cubano de Ensayos Clínicos
     "jRCT": "jrct",  # Japan Registry of Clinical Trials
-    "PHRR": "phrr",  # Philippines trial registry
-    "NL": "ictrp",  # Netherlands old registry, find at trialsearch.who.int using NLXXXX
+    "NL-OMON": "omon",  # Netherlands Trial Register
     "PER": "repec",  # Clinical Trials Peruvian Registry
 }
 
 # TODO: consider having namespaces be user-mutable in the future with ini file
 
-CONDITION_NS = ["MESH", "DOID", "EFO", "HP", "GO"]
-INTERVENTION_NS = ["CHEBI", "MESH", "EFO", "HGNC"]
+CONDITION_NS = ['MESH', 'DOID', 'EFO', 'HP', 'GO']
+INTERVENTION_NS = ['CHEBI', 'MESH', 'EFO', 'HGNC']
+CRITERIA_NS = ['HGNC']
 
 
 def get_namespaces() -> dict:

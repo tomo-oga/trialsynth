@@ -4,8 +4,8 @@ from typing import Iterator, Optional
 import gilda
 from indra.databases import mesh_client
 
-from .models import BioEntity
-from .util import CONDITION_NS, INTERVENTION_NS, must_override
+from .models import Node
+from .util import must_override, CONDITION_NS, INTERVENTION_NS, CRITERIA_NS
 
 
 class Grounder:
@@ -26,10 +26,10 @@ class Grounder:
         self.namespaces: Optional[list[str]] = namespaces
 
     @must_override
-    def preprocess(self, entity: BioEntity, *kwargs) -> BioEntity:
+    def preprocess(self, entity: Node, *kwargs) -> Node:
         pass
 
-    def ground(self, entity: BioEntity, context: Optional[str]) -> Iterator[BioEntity]:
+    def ground(self, entity: Node, context: Optional[str]) -> Iterator[Node]:
         """Ground a BioEntity to a CURIE.
 
         Parameters
@@ -78,9 +78,13 @@ class Grounder:
                     annotated_entity.id = match.id
                     yield annotated_entity
 
+<<<<<<< HEAD
     def __call__(
         self, entity: BioEntity, context: Optional[str] = None
     ) -> Iterator[BioEntity]:
+=======
+    def __call__(self, entity: Node, context: Optional[str] = None) -> Iterator[Node]:
+>>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
         return self.ground(entity, context)
 
 
@@ -92,3 +96,8 @@ class ConditionGrounder(Grounder):
 class InterventionGrounder(Grounder):
     def __init__(self):
         super().__init__(namespaces=INTERVENTION_NS)
+
+
+class CriteriaGrounder(Grounder):
+    def __init__(self):
+        super().__init__(namespaces=CRITERIA_NS)

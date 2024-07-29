@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 from ..base.process import Processor
 from .config import WhoConfig
 from .fetch import WhoFetcher
 from .ground import WhoConditionGrounder, WhoInterventionGrounder
+=======
+from .ground import WhoConditionGrounder, WhoInterventionGrounder, WhoCriteriaGrounder
+>>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
 from .transform import WhoTransformer
 from .validate import WhoValidator
 
@@ -15,6 +19,7 @@ class WhoProcessor(Processor):
             validator=WhoValidator(),
             condition_grounder=WhoConditionGrounder(),
             intervention_grounder=WhoInterventionGrounder(),
+            criteria_grounder=WhoCriteriaGrounder(),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
             validate=validate,

@@ -1,6 +1,6 @@
 from overrides import overrides
 
-from ..base.ground import ConditionGrounder, InterventionGrounder
+from ..base.ground import ConditionGrounder, InterventionGrounder, CriteriaGrounder
 from ..base.models import BioEntity
 
 
@@ -19,4 +19,9 @@ class WhoInterventionGrounder(InterventionGrounder):
             intervention_term = entity.term
 
         entity.term = intervention_term
+        return entity
+
+class WhoCriteriaGrounder(CriteriaGrounder):
+    @overrides
+    def preprocess(self, entity: BioEntity, *kwargs) -> BioEntity:
         return entity

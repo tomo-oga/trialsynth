@@ -5,9 +5,15 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ..base.config import Config
+<<<<<<< HEAD
 from ..base.fetch import Fetcher
 from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
 from ..base.util import NAMESPACES, make_list, make_str
+=======
+from ..base.models import Trial, Criteria
+from ..base.models import BioEntity, Outcome, SecondaryId, DesignInfo
+from ..base.util import make_str, make_list
+>>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +70,15 @@ class WhoFetcher(Fetcher):
                             "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
                         )
 
+<<<<<<< HEAD
                     trial_id = (
                         trial_id.removeprefix("JPRN-")
                         .removeprefix("CTIS")
                         .removeprefix("PER-")
                     )
+=======
+                    trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-").removeprefix("NL-OMON")
+>>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
 
                     who_trial = Trial(prefix, trial_id)
 
@@ -119,12 +129,37 @@ class WhoFetcher(Fetcher):
                         if intervention != "NULL"
                     ]
                     who_trial.primary_outcomes = [Outcome(measure=make_str(trial[36]))]
+<<<<<<< HEAD
                     who_trial.secondary_outcomes = [
                         Outcome(measure=make_str(trial[37]))
                     ]
                     who_trial.secondary_ids = [
                         SecondaryId(id=id) for id in make_list(trial[2], ";")
                     ]
+=======
+                    who_trial.secondary_outcomes = [Outcome(measure=make_str(trial[37]))]
+
+                    who_trial.criteria = [
+                        Criteria(
+                            type='inclusion',
+                            text=make_str(trial[34]),
+                            origin=who_trial.curie,
+                            source=self.config.registry
+                        )
+                    ]
+                    who_trial.criteria.extend(
+                        [
+                            Criteria(
+                                type='exclusion',
+                                text=make_str(trial[35]),
+                                origin=who_trial.curie,
+                                source=self.config.registry
+                            )
+                        ]
+                    )
+
+                    who_trial.secondary_ids = [SecondaryId(id=id) for id in make_list(trial[2], ';')]
+>>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
                     who_trial.source = self.config.registry
                     self.raw_data.append(who_trial)
         self.save_raw_data()
