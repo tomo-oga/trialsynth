@@ -9,7 +9,7 @@ authors = [
 license = "BSD-2-Clause"
 readme = "README.md"
 
-packages = [{ include = "trial_synth", from = "src" }]
+packages = [{ include = "trialsynth", from = "src" }]
 
 classifiers = [
   "Programming Language :: Python",
