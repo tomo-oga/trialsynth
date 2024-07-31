@@ -1,21 +1,9 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 from ..base.process import Processor
 from .config import WhoConfig
 from .fetch import WhoFetcher
-from .ground import WhoConditionGrounder, WhoInterventionGrounder
-=======
-from .ground import WhoConditionGrounder, WhoInterventionGrounder, WhoCriteriaGrounder
->>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
-=======
-from ..base.process import Processor
-from .config import WhoConfig
-from .fetch import WhoFetcher
-from .ground import (WhoConditionGrounder, WhoCriteriaGrounder,
-                     WhoInterventionGrounder)
->>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 from .transform import WhoTransformer
 from .validate import WhoValidator
+from .ground import WhoConditionGrounder, WhoInterventionGrounder, WhoGeneGrounder
 
 
 class WhoProcessor(Processor):
@@ -24,12 +12,12 @@ class WhoProcessor(Processor):
     ):
         super().__init__(
             config=WhoConfig(),
-            fetcher=WhoFetcher(WhoConfig()),
+            fetcher=WhoFetcher(),
             transformer=WhoTransformer(),
             validator=WhoValidator(),
             condition_grounder=WhoConditionGrounder(),
             intervention_grounder=WhoInterventionGrounder(),
-            genes_grounder=WhoCriteriaGrounder(),
+            genes_grounder=WhoGeneGrounder(),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
             validate=validate,

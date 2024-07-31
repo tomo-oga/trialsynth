@@ -30,12 +30,22 @@ class Fetcher:
     config : Config
         User-mutable properties of registry data processing
     """
-
-    def __init__(self, config: Config):
-        self.config: Config = config
+    config: Config
+    def __init__(self):
         self.raw_data: list[Trial] = list()
-        self.url: str = config.api_url
         self.api_parameters: dict = {}
+        self.url = None
+        self._config: Config = None
+
+    @property
+    def config(self):
+        return self._config
+
+    @config.setter
+    def config(self, config: Config):
+        self._config = config
+        self.url = config.api_url
+
 
     @must_override
     def get_api_data(self, reload: bool = False) -> None:

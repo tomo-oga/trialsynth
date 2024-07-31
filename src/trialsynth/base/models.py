@@ -302,11 +302,9 @@ class Trial(Node):
         # TODO: make lists only hold their type i.e. list[Condition], where a node has a __str__ method to turn into CURIEs
         self.title: Optional[str] = None
         self.design: DesignInfo = DesignInfo()
-        self.conditions: list[Union[Condition, str]] = []
-        self.interventions: list[Union[Intervention, str]] = []
+        self.entities: list[BioEntity] = []
         self.primary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_outcomes: list[Union[Outcome, str]] = []
-        self.genes: list[Union[Gene, str]] = []
         self.secondary_ids: list[SecondaryId] = []
 
 
