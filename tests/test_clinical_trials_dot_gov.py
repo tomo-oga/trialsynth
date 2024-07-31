@@ -1,13 +1,9 @@
 import os
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
-from trialsynth.clinical_trials_dot_gov import (
-    config,
-    fetch
-)
-
+from trialsynth.clinical_trials_dot_gov import config, fetch
 
 DOCKERIZED = os.environ.get("DOCKERIZED", False)
 

@@ -1,11 +1,11 @@
 import copy
-from typing import Optional, Callable, Iterator
+from typing import Iterator, Optional
 
 import gilda
 from indra.databases import mesh_client
 
 from .models import BioEntity
-from .util import must_override, CONDITION_NS, INTERVENTION_NS
+from .util import CONDITION_NS, INTERVENTION_NS, must_override
 
 
 class Grounder:
@@ -45,23 +45,31 @@ class Grounder:
             The grounded BioEntity.
         """
         entity = self.preprocess(entity)
-        if entity.ns and entity.ns.upper() == 'MESH' and entity.id:
+        if entity.ns and entity.ns.upper() == "MESH" and entity.id:
             if mesh_client.get_mesh_name(entity.id, offline=True):
                 yield entity
             else:
-                matches = gilda.ground(entity.term, namespaces=['MESH'])
+                matches = gilda.ground(entity.term, namespaces=["MESH"])
                 if matches:
                     match = matches[0].term
-                    entity.ns, entity.id, entity.term = match.db, match.id, match.entry_name
+                    entity.ns, entity.id, entity.term = (
+                        match.db,
+                        match.id,
+                        match.entry_name,
+                    )
                     yield entity
         else:
-            matches = gilda.ground(entity.term, namespaces=self.namespaces, context=context)
+            matches = gilda.ground(
+                entity.term, namespaces=self.namespaces, context=context
+            )
             if matches:
                 match = matches[0].term
                 entity.ns, entity.id, entity.term = match.db, match.id, match.entry_name
                 yield entity
             else:
-                annotations = gilda.annotate(entity.term, namespaces=self.namespaces, context_text=context)
+                annotations = gilda.annotate(
+                    entity.term, namespaces=self.namespaces, context_text=context
+                )
                 for _, match, *_ in annotations:
                     match = match.term
                     annotated_entity = copy.deepcopy(entity)
@@ -70,7 +78,9 @@ class Grounder:
                     annotated_entity.id = match.id
                     yield annotated_entity
 
-    def __call__(self, entity: BioEntity, context: Optional[str] = None) -> Iterator[BioEntity]:
+    def __call__(
+        self, entity: BioEntity, context: Optional[str] = None
+    ) -> Iterator[BioEntity]:
         return self.ground(entity, context)
 
 

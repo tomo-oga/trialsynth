@@ -1,11 +1,9 @@
-import os
 import logging
+import os
 import shutil
-from pathlib import Path
-from typing import Union, Dict, Optional
-
 from configparser import RawConfigParser
-
+from pathlib import Path
+from typing import Dict, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -59,29 +57,39 @@ class Config:
         self.config_dict: dict = self._create_config_dict()
 
         # directories
-        self.data_dir: Path = Path(self.get_config('DATA_DIR'))
-        self.sample_dir: Path = self.data_dir.joinpath('samples')
+        self.data_dir: Path = Path(self.get_config("DATA_DIR"))
+        self.sample_dir: Path = self.data_dir.joinpath("samples")
 
         # file paths
-        self.raw_data_path: Path = self.get_data_path(self.get_config('RAW_TRIAL_DATA'))
+        self.raw_data_path: Path = self.get_data_path(self.get_config("RAW_TRIAL_DATA"))
 
-        self.edges_path: Path = self.get_data_path(self.get_config('EDGES_FILE'))
-        self.edges_sample_path: Path = self.get_sample_path(self.get_config('EDGES_SAMPLE_FILE'))
+        self.edges_path: Path = self.get_data_path(self.get_config("EDGES_FILE"))
+        self.edges_sample_path: Path = self.get_sample_path(
+            self.get_config("EDGES_SAMPLE_FILE")
+        )
 
-        self.bio_entities_path = self.get_data_path(self.get_config('BIOENTITY_NODES_FILE'))
-        self.bio_entities_sample_path = self.get_sample_path(self.get_config('BIOENTITY_SAMPLE_FILE'))
+        self.bio_entities_path = self.get_data_path(
+            self.get_config("BIOENTITY_NODES_FILE")
+        )
+        self.bio_entities_sample_path = self.get_sample_path(
+            self.get_config("BIOENTITY_SAMPLE_FILE")
+        )
 
-        self.trials_path = self.get_data_path(self.get_config('TRIAL_NODES_FILE'))
-        self.trials_sample_path = self.get_sample_path(self.get_config('TRIAL_SAMPLE_FILE'))
+        self.trials_path = self.get_data_path(self.get_config("TRIAL_NODES_FILE"))
+        self.trials_sample_path = self.get_sample_path(
+            self.get_config("TRIAL_SAMPLE_FILE")
+        )
 
-        self.num_sample_entries = int(self.get_config('NUM_SAMPLE_ENTRIES'))
+        self.num_sample_entries = int(self.get_config("NUM_SAMPLE_ENTRIES"))
 
-        self.api_url: str = self.get_config('API_URL')
-        self.api_fields = ','.join([field.strip() for field in self.get_config('API_FIELDS').split(',')])
+        self.api_url: str = self.get_config("API_URL")
+        self.api_fields = ",".join(
+            [field.strip() for field in self.get_config("API_FIELDS").split(",")]
+        )
         self.api_parameters: dict = {}
 
         root = logging.getLogger()
-        root.setLevel(self.get_config('LOGGING_LEVEL'))
+        root.setLevel(self.get_config("LOGGING_LEVEL"))
 
     def _create_data_dir(self) -> Path:
         """Create the data directory if it doesn't exist
@@ -92,34 +100,35 @@ class Config:
             The path to the data directory
         """
 
-        home_dir = os.path.expanduser('~')
-        data_dir = os.path.join(home_dir, '.data', 'trialsynth', self.registry)
+        home_dir = os.path.expanduser("~")
+        data_dir = os.path.join(home_dir, ".data", "trialsynth", self.registry)
 
         if not os.path.isdir(data_dir):
             try:
                 os.makedirs(data_dir)
             except Exception:
-                logger.warning(data_dir + ' already exists')
+                logger.warning(data_dir + " already exists")
 
         return Path(data_dir)
 
     def _create_config_dict(self) -> Optional[Dict[str, str]]:
         """Load the configuration file into the config_file dictionary"""
 
-        home_dir = os.path.expanduser('~')
-        config_dir = os.path.join(home_dir, '.config', 'trialsynth', self.registry)
-        config_path = os.path.join(config_dir, 'config.ini')
-        default_config_path = os.path.join(os.path.dirname(__file__),
-                                           'resources/default_config.ini')
+        home_dir = os.path.expanduser("~")
+        config_dir = os.path.join(home_dir, ".config", "trialsynth", self.registry)
+        config_path = os.path.join(config_dir, "config.ini")
+        default_config_path = os.path.join(
+            os.path.dirname(__file__), "resources/default_config.ini"
+        )
         if not os.path.isfile(config_path):
             try:
                 os.makedirs(config_dir)
             except Exception:
-                logger.warning(config_dir + ' already exists')
+                logger.warning(config_dir + " already exists")
             try:
                 shutil.copyfile(default_config_path, config_path)
             except Exception:
-                logger.warning('Could not copy default config file.')
+                logger.warning("Could not copy default config file.")
 
         try:
             config_dict = {}
@@ -128,35 +137,44 @@ class Config:
             parser.read(config_path)
             sections = parser.sections()
 
-            options = parser.options('trialsynth')
+            options = parser.options("trialsynth")
             for option in options:
-                config_dict[option] = str(parser.get('trialsynth', option))
+                config_dict[option] = str(parser.get("trialsynth", option))
 
             if self.registry in sections:
                 options = parser.options(self.registry)
                 for option in options:
                     if option in config_dict:
-                        logger.info("Overwriting package level configuration with registry level for option: " + option)
+                        logger.info(
+                            "Overwriting package level configuration with registry level for option: "
+                            + option
+                        )
                     config_dict[option] = str(parser.get(self.registry, option))
             else:
-                raise ValueError(f"Registry [{self.registry}] not found in configuration file.")
+                raise ValueError(
+                    f"Registry [{self.registry}] not found in configuration file."
+                )
 
-        except Exception as e:
-            logger.warning("Could not load configuration file due to exception. "
-                           "Only environment variable equivalents will be used.")
+        except Exception:
+            logger.warning(
+                "Could not load configuration file due to exception. "
+                "Only environment variable equivalents will be used."
+            )
             return None
 
         for key in config_dict.keys():
-            if config_dict == '':
+            if config_dict == "":
                 config_dict[key] = None
             elif isinstance(config_dict[key], str):
                 config_dict[key] = os.path.expanduser(config_dict[key])
 
-        config_dict['DATA_DIR'] = self._create_data_dir()
-        config_dict['SOURCE_KEY'] = self.registry
+        config_dict["DATA_DIR"] = self._create_data_dir()
+        config_dict["SOURCE_KEY"] = self.registry
         return config_dict
 
-    def get_config(self, key: str, failure_ok: bool = True) -> Union[Path, str, int, None]:
+    def get_config(
+        self, key: str, failure_ok: bool = True
+    ) -> Union[Path, str, int, None]:
         """Get a configuration value from the environment or config file.
 
         Parameters
@@ -187,7 +205,7 @@ class Config:
             val = self.config_dict[key]
             # We interpret an empty value in the config file as a failure
             if val is None and not failure_ok:
-                msg = 'Key %s is set to an empty value in config file.' % key
+                msg = "Key %s is set to an empty value in config file." % key
                 raise TrialSynthConfigError(msg)
             else:
                 return val

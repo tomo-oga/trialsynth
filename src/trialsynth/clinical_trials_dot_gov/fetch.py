@@ -1,14 +1,13 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
+
 import requests
 from overrides import overrides
-
-from .rest_api_response_models import UnflattenedTrial
-from ..base.fetch import Fetcher, logger
-from ..base.config import Config
-
 from tqdm import tqdm
 
-from ..base.models import Trial, BioEntity, SecondaryId, DesignInfo, Outcome
+from ..base.config import Config
+from ..base.fetch import Fetcher, logger
+from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
+from .rest_api_response_models import UnflattenedTrial
 
 
 class CTFetcher(Fetcher):
@@ -30,12 +29,13 @@ class CTFetcher(Fetcher):
     config : Config
         User-mutable properties of registry data processing
     """
+
     def __init__(self, config: Config):
         super().__init__(config)
         self.api_parameters = {
             "fields": self.config.api_fields,  # actually column names, not fields
             "pageSize": 1000,
-            "countTotal": "true"
+            "countTotal": "true",
         }
         self.total_pages = 0
 
@@ -52,32 +52,38 @@ class CTFetcher(Fetcher):
             self._read_next_page()
 
             pages = self.total_pages
-            page_size = self.api_parameters.get('pageSize')
-            with tqdm(desc='Downloading ClinicalTrials.gov trials', total=int(pages*page_size), unit='trial',
-                      unit_scale=True) as pbar:
+            page_size = self.api_parameters.get("pageSize")
+            with tqdm(
+                desc="Downloading ClinicalTrials.gov trials",
+                total=int(pages * page_size),
+                unit="trial",
+                unit_scale=True,
+            ) as pbar:
                 pbar.update(page_size)
                 for _ in range(1):
                     self._read_next_page()
                     pbar.update(page_size)
 
         except Exception:
-            logger.exception(f'Could not fetch data from {self.url}')
+            logger.exception(f"Could not fetch data from {self.url}")
             raise
 
         self.save_raw_data()
 
     def _read_next_page(self):
-        response = requests.get(self.url, self.api_parameters)
+        response = requests.get(self.url, self.api_parameters, timeout=10)
         response.raise_for_status()
         json_data = response.json()
 
-        studies = json_data.get('studies', [])
+        studies = json_data.get("studies", [])
         trials = self._json_to_trials(studies)
         self.raw_data.extend(trials)
-        self.api_parameters['pageToken'] = json_data.get('nextPageToken')
+        self.api_parameters["pageToken"] = json_data.get("nextPageToken")
 
         if not self.total_pages:
-            self.total_pages = json_data.get('totalCount') / self.api_parameters.get('pageSize')
+            self.total_pages = json_data.get("totalCount") / self.api_parameters.get(
+                "pageSize"
+            )
 
     def _json_to_trials(self, data: dict) -> list[Trial]:
         trials = []
@@ -85,7 +91,9 @@ class CTFetcher(Fetcher):
         for study in data:
             rest_trial = UnflattenedTrial(**study)
 
-            trial = Trial(ns='clinicaltrials', id=rest_trial.protocol_section.id_module.nct_id)
+            trial = Trial(
+                ns="clinicaltrials", id=rest_trial.protocol_section.id_module.nct_id
+            )
 
             trial.title = rest_trial.protocol_section.id_module.brief_title
 
@@ -99,65 +107,88 @@ class CTFetcher(Fetcher):
                 purpose=design_info.purpose,
                 allocation=design_info.allocation,
                 masking=design_info.masking_info.masking,
-                assignment=design_info.intervention_assignment
-                if design_info.intervention_assignment else design_info.observation_assignment
+                assignment=(
+                    design_info.intervention_assignment
+                    if design_info.intervention_assignment
+                    else design_info.observation_assignment
+                ),
             )
 
-            condition_meshes = rest_trial.derived_section.condition_browse_module.condition_meshes
+            condition_meshes = (
+                rest_trial.derived_section.condition_browse_module.condition_meshes
+            )
             conditions = rest_trial.protocol_section.conditions_module.conditions
             trial.conditions = [
                 BioEntity(
                     term=condition,
-                    labels=['condition'],
+                    labels=["condition"],
                     origin=trial.curie,
-                    source=self.config.registry
-                ) for condition in conditions
+                    source=self.config.registry,
+                )
+                for condition in conditions
             ]
-            trial.conditions.extend([
-                BioEntity(
-                    ns='MESH',
-                    id=mesh.mesh_id,
-                    labels=['condition'],
-                    term=mesh.term,
-                    origin=trial.curie,
-                    source=self.config.registry
-                ) for mesh in condition_meshes
-            ])
+            trial.conditions.extend(
+                [
+                    BioEntity(
+                        ns="MESH",
+                        id=mesh.mesh_id,
+                        labels=["condition"],
+                        term=mesh.term,
+                        origin=trial.curie,
+                        source=self.config.registry,
+                    )
+                    for mesh in condition_meshes
+                ]
+            )
 
-            intervention_arms = rest_trial.protocol_section.arms_interventions_module.arms_interventions
-            intervention_meshes = rest_trial.derived_section.intervention_browse_module.intervention_meshes
+            intervention_arms = (
+                rest_trial.protocol_section.arms_interventions_module.arms_interventions
+            )
+            intervention_meshes = (
+                rest_trial.derived_section.intervention_browse_module.intervention_meshes
+            )
 
             trial.interventions = [
                 BioEntity(
                     term=i.name,
-                    labels=['intervention', i.intervention_type],
+                    labels=["intervention", i.intervention_type],
                     origin=trial.curie,
-                    source=self.config.registry
-                ) for i in intervention_arms if i.name
+                    source=self.config.registry,
+                )
+                for i in intervention_arms
+                if i.name
             ]
-            trial.interventions.extend([
-                BioEntity(
-                    ns='MESH',
-                    id=mesh.mesh_id,
-                    term=mesh.term,
-                    labels=['intervention'],
-                    origin=trial.curie,
-                    source=self.config.registry
-                ) for mesh in intervention_meshes
-            ])
+            trial.interventions.extend(
+                [
+                    BioEntity(
+                        ns="MESH",
+                        id=mesh.mesh_id,
+                        term=mesh.term,
+                        labels=["intervention"],
+                        origin=trial.curie,
+                        source=self.config.registry,
+                    )
+                    for mesh in intervention_meshes
+                ]
+            )
 
-            primary_outcomes = rest_trial.protocol_section.outcomes_module.primary_outcome
-            trial.primary_outcomes = [Outcome(o.measure, o.time_frame) for o in primary_outcomes]
+            primary_outcomes = (
+                rest_trial.protocol_section.outcomes_module.primary_outcome
+            )
+            trial.primary_outcomes = [
+                Outcome(o.measure, o.time_frame) for o in primary_outcomes
+            ]
 
-            secondary_outcomes = rest_trial.protocol_section.outcomes_module.secondary_outcome
-            trial.secondary_outcomes = [Outcome(o.measure, o.time_frame) for o in secondary_outcomes]
+            secondary_outcomes = (
+                rest_trial.protocol_section.outcomes_module.secondary_outcome
+            )
+            trial.secondary_outcomes = [
+                Outcome(o.measure, o.time_frame) for o in secondary_outcomes
+            ]
 
             secondary_info = rest_trial.protocol_section.id_module.secondary_ids
             trial.secondary_ids = [
-                SecondaryId(
-                    ns=s.id_type,
-                    id=s.secondary_id
-                ) for s in secondary_info
+                SecondaryId(ns=s.id_type, id=s.secondary_id) for s in secondary_info
             ]
 
             trial.source = self.config.registry

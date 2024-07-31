@@ -1,8 +1,8 @@
+import logging
 import re
 from typing import Optional
 
 import bioregistry
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ ct_namespaces = {
 
 # TODO: consider having namespaces be user-mutable in the future with ini file
 
-CONDITION_NS = ['MESH', 'DOID', 'EFO', 'HP', 'GO']
-INTERVENTION_NS = ['CHEBI', 'MESH', 'EFO', 'HGNC']
+CONDITION_NS = ["MESH", "DOID", "EFO", "HP", "GO"]
+INTERVENTION_NS = ["CHEBI", "MESH", "EFO", "HGNC"]
 
 
 def get_namespaces() -> dict:
@@ -77,7 +77,7 @@ def get_patterns() -> dict:
 PATTERNS = get_patterns()
 
 
-def make_list(s: Optional[str], delimeter: str = '.') -> list:
+def make_list(s: Optional[str], delimeter: str = ".") -> list:
     """Create a list of values from an element joined by a dilemeter
 
     Parameters
@@ -136,10 +136,13 @@ def must_override(method):
     NotImplementedError
         If the method is not implemented in the subclass
     """
+
     def wrapper(*args, **kwargs):
         cls = args[0].__class__
         if method.__name__ in cls.__dict__:
-            raise NotImplementedError(f"Class '{cls.__name__}' must override method '{method.__name__}'")
+            raise NotImplementedError(
+                f"Class '{cls.__name__}' must override method '{method.__name__}'"
+            )
         return method(*args, **kwargs)
 
     return wrapper

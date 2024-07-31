@@ -1,9 +1,8 @@
 from ..base.process import Processor
-
-from .transform import CTTransformer
 from .config import CTConfig
 from .fetch import CTFetcher
 from .ground import CTConditionGrounder, CTInterventionGrounder
+from .transform import CTTransformer
 from .validate import CTValidator
 
 
@@ -18,5 +17,5 @@ class CTProcessor(Processor):
             intervention_grounder=CTInterventionGrounder(),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
-            validate=validate
+            validate=validate,
         )
