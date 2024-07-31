@@ -10,8 +10,8 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 from . import store
 from .config import Config
 from .fetch import Fetcher
-from .ground import ConditionGrounder, InterventionGrounder, GeneGrounder
-from .models import BioEntity, Condition, Intervention, Gene, Edge, Trial
+from .ground import ConditionGrounder, GeneGrounder, InterventionGrounder
+from .models import Condition, Intervention, Gene, Edge, Trial
 from .transform import Transformer
 from .validate import Validator
 
@@ -132,7 +132,7 @@ class Processor:
 
         self.grounders: Tuple[ConditionGrounder, InterventionGrounder, GeneGrounder] = grounders
 
-        self.entities: Tuple[list[Condition], list[Intervention], list[Gene]] = ([], [], [])
+        self.entities: dict[type, list] = {}
 
         self.edges: list[Edge] = []
 
@@ -170,127 +170,46 @@ class Processor:
                 self.curie_to_trial[trial.curie] = trial
                 iterated_trials.add(trial)
 
-            # should be refactored later to accept various connection types. i.e. criteria
             for entity in trial.entities:
-                if isinstance(entity, Condition):
-                    self.entities[0].append(entity)
-                elif isinstance(entity, Intervention):
-                    self.entities[1].append(entity)
-                elif isinstance(entity, Gene):
-                    self.entities[2].append(entity)
+                if type(entity) not in self.entities.keys():
+                    self.entities[type(entity)] = []
+
+                self.entities[type(entity)].append(entity)
+
+            trial.entities = []
 
     def process_bioentities(self):
         """Processes bioentities by grounding them."""
         logger.info("Warming up grounder...")
-        gilda.ground("stuff")
+        self.grounders[0].ground("stuff")
         logger.info("Done.")
 
 
-        for entities, grounder in zip(self.entities, self.grounders):
-            entity_type = entities[0].__class__.__name__.lower()
+        for type, entities, grounder in zip(self.entities.keys(), self.entities.values(), self.grounders):
+            entity_type = type.__name__.lower()
             entity_iter = tqdm(entities, desc=f'Grounding {entity_type}', unit=entity_type, unit_scale=True)
 
             for entity in entity_iter:
                 with logging_redirect_tqdm():
                     trial = self.curie_to_trial[entity.origin]
 
-                    pre_grounded_terms = set(entity.term.lower() for entity in trial.entities)
+                    pre_grounded_terms = set(entity.text.lower() for entity in trial.entities if entity.text)
 
                     entities = list(grounder(entity, trial.title, pre_grounded_terms))
 
                     curie_to_entity = {entity.curie: entity for entity in entities}
                     trial.entities.extend(curie_to_entity.values())
 
-    def process_conditions(self):
-        """Processes conditions by grounding them using the condition preprocessor."""
-        condition_iter = tqdm(
-            self.conditions,
-            desc="Grounding Conditions",
-            unit="condition",
-            unit_scale=True,
-        )
-
-        for condition in condition_iter:
-            with logging_redirect_tqdm():
-                trial = self.curie_to_trial[condition.origin]
-                conditions = list(
-                    self.condition_grounder(condition, trial.title)
-                )
-                curie_to_condition = {
-                    condition.curie: condition for condition in conditions
-                }
-                trial.conditions.extend(curie_to_condition.values())
-
-    def process_interventions(self):
-        """Processes interventions by grounding them using the intervention preprocessor."""
-        intervention_iter = tqdm(
-            self.interventions,
-            desc="Grounding Interventions",
-            unit="intervention",
-            unit_scale=True,
-        )
-
-        for intervention in intervention_iter:
-            with logging_redirect_tqdm():
-                trial = self.curie_to_trial[intervention.origin]
-                interventions = list(
-                    self.intervention_grounder(intervention, trial.title)
-                )
-                curie_to_intervention = {
-                    intervention.curie: intervention
-                    for intervention in interventions
-                }
-                trial.interventions.extend(curie_to_intervention.values())
-
-    def process_genes(self):
-        criteria_iter = tqdm(
-            self.genes,
-            desc="Grounding Genes",
-            unit="gene",
-            unit_scale=True,        )
-
-        for criteria in criteria_iter:
-            with logging_redirect_tqdm():
-                trial = self.curie_to_trial[criteria.origin]
-                criteria = list(self.genes_grounder(criteria, trial.title))
-                curie_to_criteria = {
-                    criteria.curie: criteria for criteria in criteria
-                }
-                trial.genes.extend(curie_to_criteria.values())
 
     def create_edges(self):
-        """Creates edges connecting trials to conditions and interventions."""
+        """Creates edges connecting trials to related bioentities."""
         for trial in tqdm(
             self.trials,
             desc="Generating edges from trial",
             unit="trial",
             unit_scale=True,
         ):
-            self.edges.extend(
-                [
-                    Edge(
-                        condition.curie,
-                        trial.curie,
-                        "has_condition",
-                        self.config.registry,
-                    )
-                    for condition in set(trial.conditions)
-                    if condition
-                ]
-            )
-
-            self.edges.extend(
-                [
-                    Edge(
-                        intervention.curie,
-                        trial.curie,
-                        "has_intervention",
-                        self.config.registry,
-                    )
-                    for intervention in set(trial.interventions)
-                    if intervention
-                ]
-            )
+            self.edges = [Edge(trial, entity, self.config.registry) for entity in trial.entities]
 
     def save_trial_data(
         self, path: Path, sample_path: Optional[Path] = None
@@ -320,6 +239,7 @@ class Processor:
             "design:DESIGN",
             "conditions:CURIE[]",
             "interventions:CURIE[]",
+            "genes:CURIE[]",
             "primary_outcome:OUTCOME[]",
             "secondary_outcome:OUTCOME[]",
             "secondary_ids:CURIE[]",
@@ -350,19 +270,13 @@ class Processor:
         -------
         None
         """
-        entities = []
-        for trial in self.trials:
-            entities.extend([condition for condition in trial.conditions])
-            entities.extend(
-                [intervention for intervention in trial.interventions]
-            )
+        curie_to_entity = {}
 
-        entities = list(set(entities))
-        entities = [
-            self.transformer.flatten_bioentity(entity)
-            for entity in entities
-            if entity
-        ]
+        for trial in self.trials:
+            for entity in trial.entities:
+                curie_to_entity[entity.curie] = entity
+
+        entities = [self.transformer.flatten_bioentity(entity) for entity in curie_to_entity.values()]
         store.save_data_as_flatfile(
             entities,
             path=path,
@@ -399,7 +313,6 @@ class Processor:
                 "from:CURIE",
                 "to:CURIE",
                 "rel_type:string",
-                "rel_curie:CURIE",
                 "source_registry:string",
             ],
             sample_path=sample_path,
@@ -449,9 +362,9 @@ class Processor:
 
     def validate_data(self):
         """Validates the processed data using the Validator object."""
-        logger.info(f"Validating trial data.")
+        logger.info("Validating trial data.")
         self.validator(self.config.trials_path)
-        logger.info(f"Validating bioentity data.")
+        logger.info("Validating bioentity data.")
         self.validator(self.config.bio_entities_path)
-        logger.info(f"Validating edge data.")
+        logger.info("Validating edge data.")
         self.validator(self.config.edges_path)

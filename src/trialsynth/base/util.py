@@ -117,6 +117,9 @@ def make_str(s: str) -> Optional[str]:
         return s.strip()
     return
 
+def join_list_to_str(items: list, delimeter=';'):
+    return delimeter.join([item.strip() for item in items])
+
 
 def must_override(method):
     """Decorator to ensure that a method is implemented in a subclass

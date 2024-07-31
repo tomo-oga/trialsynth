@@ -5,7 +5,15 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ..base.fetch import Fetcher
-from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
+from ..base.models import (
+    Condition,
+    DesignInfo,
+    Gene,
+    Intervention,
+    Outcome,
+    SecondaryId,
+    Trial,
+)
 from ..base.util import NAMESPACES, make_list, make_str
 
 logger = logging.getLogger(__name__)
@@ -96,25 +104,27 @@ class WhoFetcher(Fetcher):
                     if who_trial.design is None:
                         who_trial.design = DesignInfo(fallback=make_str(trial[19]))
 
-                    who_trial.conditions = [
-                        BioEntity(
-                            term=condition,
-                            origin=who_trial.curie,
-                            labels=["condition"],
-                            source=self.config.registry,
-                        )
+                    who_trial.entities.extend([
+                        Condition(text=condition, origin=who_trial.curie, source=self.config.registry)
                         for condition in make_list(trial[29], ";")
-                    ]
-                    who_trial.interventions = [
-                        BioEntity(
-                            term=intervention,
-                            origin=who_trial.curie,
-                            labels=["intervention"],
-                            source=self.config.registry,
-                        )
+                    ])
+
+                    who_trial.entities.extend([
+                        Intervention(text=intervention, origin=who_trial.curie, source=self.config.registry)
                         for intervention in make_list(trial[30], ";")
                         if intervention != "NULL"
-                    ]
+                    ])
+
+                    who_trial.entities.extend([
+                        Gene(text=gene, labels=['inclusion'], origin=who_trial.curie, source=self.config.registry)
+                        for gene in make_list(trial[34].replace('<br>', ''), ';')
+                    ])
+
+                    who_trial.entities.extend([
+                        Gene(text=gene, labels=['exclusion'], origin=who_trial.curie, source=self.config.registry)
+                        for gene in make_list(.replace('<br>', ''), ';')
+                    ])
+
                     who_trial.primary_outcomes = [Outcome(measure=make_str(trial[36]))]
                     who_trial.secondary_outcomes = [
                         Outcome(measure=make_str(trial[37]))

@@ -195,7 +195,7 @@ class BioEntity(Node):
 
     def __init__(
         self,
-        term: str,
+        text: str,
         labels: list[str],
         origin: str,
         source: str,
@@ -205,7 +205,7 @@ class BioEntity(Node):
         super().__init__(ns=ns, id=id, source=source)
         self.labels = ["bioentity"]
         self.labels.extend(labels)
-        self.text: str = term
+        self.text: str = text
         self.origin: str = origin
 
 
@@ -229,21 +229,50 @@ class Condition(BioEntity):
         The ID of the bioentity (default: None).
     """
 
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.labels.extend("condition")
+    def __init__(
+        self,
+        text: str,
+        origin: str,
+        source: str,
+        labels: Optional[list[str]] = None,
+        ns: Optional[str] = None,
+        id: Optional[str] = None,
+    ):
+        super().__init__(text=text, labels=['condition'], origin=origin, source=source, ns=ns, id=id)
+        if labels:
+            self.labels.extend(labels)
 
 
 class Intervention(BioEntity):
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.labels.extend("intervention")
+    def __init__(
+        self,
+        text: str,
+        origin: str,
+        source: str,
+        labels: Optional[list[str]] = None,
+        ns: Optional[str] = None,
+        id: Optional[str] = None,
+    ):
+        super().__init__(text=text, labels=['intervention'], origin=origin, source=source, ns=ns, id=id)
+        if labels:
+            self.labels.extend(labels)
+
 
 
 class Gene(BioEntity):
-    def __init__(self, *args):
-        super().__init__(*args)
-        self.labels.extend("gene")
+    def __init__(
+        self,
+        text: str,
+        origin: str,
+        source: str,
+        labels: Optional[list[str]] = None,
+        ns: Optional[str] = None,
+        id: Optional[str] = None,
+    ):
+        super().__init__(text=text, labels=['gene'], origin=origin, source=source, ns=ns, id=id)
+        if labels:
+            self.labels.extend(labels)
+
 
 
 class Trial(Node):
@@ -299,7 +328,6 @@ class Trial(Node):
         if labels:
             self.labels.extend(labels)
 
-        # TODO: make lists only hold their type i.e. list[Condition], where a node has a __str__ method to turn into CURIEs
         self.title: Optional[str] = None
         self.design: DesignInfo = DesignInfo()
         self.entities: list[BioEntity] = []
@@ -307,41 +335,35 @@ class Trial(Node):
         self.secondary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_ids: list[SecondaryId] = []
 
+    @property
+    def conditions(self) -> list[Condition]:
+        return [entity for entity in self.entities if isinstance(entity, Condition)]
+
+    @property
+    def interventions(self) -> list[Intervention]:
+        return [entity for entity in self.entities if isinstance(entity, Intervention)]
+
+    @property
+    def genes(self) -> list[Gene]:
+        return [entity for entity in self.entities if isinstance(entity, Gene)]
+
 
 class Edge:
     """Edge between a trial and a bioentity
 
     Attributes
     ----------
-    bio_ent_curie: str
-        The CURIE of the bioentity
-    trial_curie: str
-        The CURIE of the trial
+    trial: Trial
+        The trial that has a relation to an entity
+    entity: BioEntity
+        The bioentity that is related to the trial.
     rel_type: str
-        The type of relationship between the bioentity and the trial
-    rel_type_curie: str
-        The CURIE of the relationship type
-    source: str
-        The source of the relationship
+        The type of relation.
     """
 
-    def __init__(
-        self, bio_ent_curie: str, trial_curie: str, rel_type: str, source: str
-    ):
-        self.bio_ent_curie = bio_ent_curie
-        self.trial_curie = trial_curie
-        self.rel_type = rel_type
+    def __init__(self, trial: Trial, entity: BioEntity,source: str):
+        self.trial = trial
+        self.entity = entity
         self.source = source
 
-        rel_type_to_curie = {
-            "has_condition": "debio:0000036",
-            "has_intervention": "debio:0000035",
-        }
-        if rel_type not in rel_type_to_curie.keys():
-            logger.warning(
-                "Relationship type: %s not defined. Defaulting to empty string for curie",
-                rel_type,
-            )
-            self.rel_type_curie = ""
-        else:
-            self.rel_type_curie = rel_type_to_curie[rel_type]
+        self.rel_type = f'has_{type(entity).__name__.lower()}'

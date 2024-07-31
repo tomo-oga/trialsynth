@@ -1,9 +1,9 @@
 from ..base.process import Processor
 from .config import WhoConfig
 from .fetch import WhoFetcher
+from .ground import WhoConditionGrounder, WhoGeneGrounder, WhoInterventionGrounder
 from .transform import WhoTransformer
 from .validate import WhoValidator
-from .ground import WhoConditionGrounder, WhoInterventionGrounder, WhoGeneGrounder
 
 
 class WhoProcessor(Processor):
@@ -15,9 +15,11 @@ class WhoProcessor(Processor):
             fetcher=WhoFetcher(),
             transformer=WhoTransformer(),
             validator=WhoValidator(),
-            condition_grounder=WhoConditionGrounder(),
-            intervention_grounder=WhoInterventionGrounder(),
-            genes_grounder=WhoGeneGrounder(),
+            grounders=(
+                WhoConditionGrounder(),
+                WhoInterventionGrounder(),
+                WhoGeneGrounder()
+            ),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
             validate=validate,

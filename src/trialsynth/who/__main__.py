@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-=======
-import click
-
->>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 from ..base.process import run_processor
 from .process import WhoProcessor
 
