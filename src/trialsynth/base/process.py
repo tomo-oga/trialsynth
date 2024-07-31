@@ -10,9 +10,8 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 from . import store
 from .config import Config
 from .fetch import Fetcher
-from .models import Trial, Edge, BioEntity, Criteria
-from .ground import Grounder
-from .models import BioEntity, Edge, Trial
+from .ground import ConditionGrounder, InterventionGrounder, GeneGrounder
+from .models import Condition, Intervention, Gene, Edge, Trial
 from .transform import Transformer
 from .validate import Validator
 
@@ -38,13 +37,25 @@ def run_processor(
 
     @click.command()
     @click.option(
-        "-r", "--reload", is_flag=True, default=False, help="Reload data from the API"
+        "-r",
+        "--reload",
+        is_flag=True,
+        default=False,
+        help="Reload data from the API",
     )
     @click.option(
-        "-s", "--store-samples", is_flag=True, default=False, help="Store samples"
+        "-s",
+        "--store-samples",
+        is_flag=True,
+        default=False,
+        help="Store samples",
     )
     @click.option(
-        "-v", "--validate", is_flag=True, default=False, help="Validate the data"
+        "-v",
+        "--validate",
+        is_flag=True,
+        default=False,
+        help="Validate the data",
     )
     def wrapper(reload: bool, store_samples: bool, validate: bool):
         return func(reload, store_samples, validate)
@@ -97,17 +108,17 @@ class Processor:
     """
 
     def __init__(
-            self,
-            config: Config,
-            fetcher: Fetcher,
-            transformer: Transformer,
-            condition_grounder: Grounder,
-            intervention_grounder: Grounder,
-            criteria_grounder: Grounder,
-            validator: Validator,
-            reload_api_data: bool = False,
-            store_samples: bool = False,
-            validate: bool = True,
+        self,
+        config: Config,
+        fetcher: Fetcher,
+        transformer: Transformer,
+        condition_grounder: ConditionGrounder,
+        intervention_grounder: InterventionGrounder,
+        genes_grounder: GeneGrounder,
+        validator: Validator,
+        reload_api_data: bool = False,
+        store_samples: bool = False,
+        validate: bool = True,
     ):
         self.config = config
         self.fetcher = fetcher
@@ -120,11 +131,11 @@ class Processor:
 
         self.condition_grounder = condition_grounder
         self.intervention_grounder = intervention_grounder
-        self.criteria_grounder = criteria_grounder
+        self.genes_grounder = genes_grounder
 
-        self.conditions: list[BioEntity] = []
-        self.interventions: list[BioEntity] = []
-        self.criteria: list[Criteria] = []
+        self.conditions: list[Condition] = []
+        self.interventions: list[Intervention] = []
+        self.genes: list[Gene] = []
 
         self.edges: list[Edge] = []
 
@@ -160,13 +171,14 @@ class Processor:
         for trial in self.trials:
 
             # should be refactored later to accept various connection types. i.e. criteria
-            self.conditions.extend([condition for condition in trial.conditions])
-            self.interventions.extend([intervention for intervention in trial.interventions])
+            self.conditions.extend(trial.conditions)
+            self.interventions.extend(trial.interventions)
+            self.genes.extend(trial.genes)
 
             # clearing trial of entities for grounding
             trial.conditions = []
             trial.interventions = []
-            trial.criteria = []
+            trial.genes = []
 
             if trial.curie not in iterated_trials:
                 iterated_trials.add(trial.curie)
@@ -176,11 +188,46 @@ class Processor:
         """Processes bioentities by grounding them."""
         logger.info("Warming up grounder...")
         gilda.ground("stuff")
-        logger.info('Done.')
-        self.process_conditions()
-        self.process_interventions()
+        logger.info("Done.")
+        process_config = [
+            (
+                "condition",
+                self.conditions,
+                self.condition_grounder,
+            ),
+            (
+                "intervention",
+                self.interventions,
+                self.intervention_grounder,
+            ),
+            (
+                "gene",
+                self.genes,
+                self.genes_grounder,
+            )
+        ]
+        
+        for entity_type, entities, grounder in process_config:
+            entity_iter = tqdm(
+                entities,
+                desc=f"Grounding {entity_type}s",
+                unit=entity_type,
+                unit_scale=True,
+            )
+            for entity in entity_iter:
+                with logging_redirect_tqdm():
+                    trial = self.curie_to_trial[entity.origin]
+                    entities = list(grounder(entity, trial.title))
+                    curie_to_entity = {
+                        entity.curie: entity for entity in entities
+                    }
+                    if entity_type == "condition":
+                        trial.conditions.extend(curie_to_entity.values())
+                    elif entity_type == "intervention":
+                        trial.interventions.extend(curie_to_entity.values())
+                    elif entity_type == "gene":
+                        trial.genes.extend(curie_to_entity.values())
 
-    # TODO: Refactor to accept various connection types without needing to redefine a method. i.e. criteria
     def process_conditions(self):
         """Processes conditions by grounding them using the condition preprocessor."""
         condition_iter = tqdm(
@@ -193,7 +240,9 @@ class Processor:
         for condition in condition_iter:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[condition.origin]
-                conditions = list(self.condition_grounder(condition, trial.title))
+                conditions = list(
+                    self.condition_grounder(condition, trial.title)
+                )
                 curie_to_condition = {
                     condition.curie: condition for condition in conditions
                 }
@@ -215,21 +264,26 @@ class Processor:
                     self.intervention_grounder(intervention, trial.title)
                 )
                 curie_to_intervention = {
-                    intervention.curie: intervention for intervention in interventions
+                    intervention.curie: intervention
+                    for intervention in interventions
                 }
                 trial.interventions.extend(curie_to_intervention.values())
 
-    def process_criteria(self):
-        criteria_iter = tqdm(self.criteria, desc="Grounding Criteria", unit="criteria", unit_scale=True)
+    def process_genes(self):
+        criteria_iter = tqdm(
+            self.genes,
+            desc="Grounding Genes",
+            unit="gene",
+            unit_scale=True,        )
 
         for criteria in criteria_iter:
             with logging_redirect_tqdm():
                 trial = self.curie_to_trial[criteria.origin]
-                criteria = list(
-                    self.criteria_grounder(criteria, trial.title)
-                )
-                curie_to_criteria = {criteria.curie: criteria for criteria in criteria}
-                trial.criteria.extend(curie_to_criteria.values())
+                criteria = list(self.genes_grounder(criteria, trial.title))
+                curie_to_criteria = {
+                    criteria.curie: criteria for criteria in criteria
+                }
+                trial.genes.extend(curie_to_criteria.values())
 
     def create_edges(self):
         """Creates edges connecting trials to conditions and interventions."""
@@ -265,7 +319,9 @@ class Processor:
                 ]
             )
 
-    def save_trial_data(self, path: Path, sample_path: Optional[Path] = None) -> None:
+    def save_trial_data(
+        self, path: Path, sample_path: Optional[Path] = None
+    ) -> None:
         """Saves processed trial data to a compressed tsv file.
 
         Parameters
@@ -305,7 +361,9 @@ class Processor:
             num_samples=self.config.num_sample_entries,
         )
 
-    def save_bioentities(self, path: Path, sample_path: Optional[Path] = None) -> None:
+    def save_bioentities(
+        self, path: Path, sample_path: Optional[Path] = None
+    ) -> None:
         """Saves processed bioentities to a compressed tsv file.
 
         Parameters
@@ -322,11 +380,15 @@ class Processor:
         entities = []
         for trial in self.trials:
             entities.extend([condition for condition in trial.conditions])
-            entities.extend([intervention for intervention in trial.interventions])
+            entities.extend(
+                [intervention for intervention in trial.interventions]
+            )
 
         entities = list(set(entities))
         entities = [
-            self.transformer.flatten_bioentity(entity) for entity in entities if entity
+            self.transformer.flatten_bioentity(entity)
+            for entity in entities
+            if entity
         ]
         store.save_data_as_flatfile(
             entities,
@@ -383,7 +445,9 @@ class Processor:
         )
         self.save_trial_data(
             self.config.trials_path,
-            sample_path=self.config.trials_sample_path if self.store_samples else None,
+            sample_path=(
+                self.config.trials_sample_path if self.store_samples else None
+            ),
         )
 
         # save processed bioentity data to compressed tsv
@@ -393,22 +457,28 @@ class Processor:
         self.save_bioentities(
             self.config.bio_entities_path,
             sample_path=(
-                self.config.bio_entities_sample_path if self.store_samples else None
+                self.config.bio_entities_sample_path
+                if self.store_samples
+                else None
             ),
         )
 
         # save edges to compressed tsv
-        logger.info(f"Serializing and storing edges to {self.config.edges_path}")
+        logger.info(
+            f"Serializing and storing edges to {self.config.edges_path}"
+        )
         self.save_edges(
             self.config.edges_path,
-            sample_path=self.config.edges_sample_path if self.store_samples else None,
+            sample_path=(
+                self.config.edges_sample_path if self.store_samples else None
+            ),
         )
 
     def validate_data(self):
         """Validates the processed data using the Validator object."""
-        logger.info("Validating trial data.")
+        logger.info(f"Validating trial data.")
         self.validator(self.config.trials_path)
-        logger.info("Validating bioentity data.")
+        logger.info(f"Validating bioentity data.")
         self.validator(self.config.bio_entities_path)
-        logger.info("Validating edge data.")
+        logger.info(f"Validating edge data.")
         self.validator(self.config.edges_path)

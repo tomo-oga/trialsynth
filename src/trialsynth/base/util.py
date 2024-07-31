@@ -4,8 +4,6 @@ from typing import Optional
 
 import bioregistry
 
-from enum import Enum
-
 logger = logging.getLogger(__name__)
 
 ct_namespaces = {
@@ -45,9 +43,9 @@ ct_namespaces = {
 
 # TODO: consider having namespaces be user-mutable in the future with ini file
 
-CONDITION_NS = ['MESH', 'DOID', 'EFO', 'HP', 'GO']
-INTERVENTION_NS = ['CHEBI', 'MESH', 'EFO', 'HGNC']
-CRITERIA_NS = ['HGNC']
+CONDITION_NS = ["MESH", "DOID", "EFO", "HP", "GO"]
+INTERVENTION_NS = ["CHEBI", "MESH", "EFO"]
+GENE_NS = ["HGNC"]
 
 
 def get_namespaces() -> dict:

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class TrialSynthConfigError(Exception):
-    pass
+    """Thrown when configurationis not found"""
 
 
 class Config:
@@ -31,7 +31,7 @@ class Config:
     sample_dir : Path
         The directory where the samples are stored.
     raw_data_path : Path
-        The path to the raw data file stored as a list of :class:`Trial` objects.
+        Raw data file stored as a list of :class:`Trial` objects.
     edges_path : Path
         The path to the edges file stored as a compressed TSV file.
     edges_sample_path : Path
@@ -106,8 +106,8 @@ class Config:
         if not os.path.isdir(data_dir):
             try:
                 os.makedirs(data_dir)
-            except Exception:
-                logger.warning(data_dir + " already exists")
+            except OSError:
+                logger.warning("%s already exists", data_dir)
 
         return Path(data_dir)
 
@@ -123,11 +123,11 @@ class Config:
         if not os.path.isfile(config_path):
             try:
                 os.makedirs(config_dir)
-            except Exception:
-                logger.warning(config_dir + " already exists")
+            except OSError:
+                logger.warning("%s already exists", config_dir)
             try:
                 shutil.copyfile(default_config_path, config_path)
-            except Exception:
+            except OSError:
                 logger.warning("Could not copy default config file.")
 
         try:
@@ -146,8 +146,8 @@ class Config:
                 for option in options:
                     if option in config_dict:
                         logger.info(
-                            "Overwriting package level configuration with registry level for option: "
-                            + option
+                            "Overwriting package level configuration with registry level for option: %s",
+                            option,
                         )
                     config_dict[option] = str(parser.get(self.registry, option))
             else:

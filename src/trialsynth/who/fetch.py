@@ -6,6 +6,7 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ..base.config import Config
 <<<<<<< HEAD
+<<<<<<< HEAD
 from ..base.fetch import Fetcher
 from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
 from ..base.util import NAMESPACES, make_list, make_str
@@ -16,6 +17,12 @@ from ..base.util import make_str, make_list
 >>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
 
 logger = logging.getLogger(__name__)
+=======
+from ..base.fetch import Fetcher, logger
+from ..base.models import (Condition, Criteria, DesignInfo, Intervention,
+                           Outcome, SecondaryId, Trial)
+from ..base.util import NAMESPACES, make_list, make_str
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
 
 class WhoFetcher(Fetcher):
@@ -51,10 +58,17 @@ class WhoFetcher(Fetcher):
                 with logging_redirect_tqdm():
                     trial_id = trial[0].strip()
                     trial_id = trial_id.replace("\ufeff", "")
+<<<<<<< HEAD
                     prefix = None
                     for p, pfix in NAMESPACES.items():
                         if trial_id.startswith(p) or trial_id.startswith(p.lower()):
                             prefix = pfix
+=======
+                    for p, prefix in NAMESPACES.items():
+                        if trial_id.startswith(p) or trial_id.startswith(
+                            p.lower()
+                        ):
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
                             break
                     else:
                         msg = f"could not identify {trial_id}"
@@ -67,18 +81,30 @@ class WhoFetcher(Fetcher):
                         # handling inconsistencies with ChiCTR trial IDs
                     if trial_id.lower().startswith("chictr-"):
                         trial_id = (
+<<<<<<< HEAD
                             "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
                         )
 
 <<<<<<< HEAD
+=======
+                            "ChiCTR-"
+                            + trial_id.lower().removeprefix("chictr-").upper()
+                        )
+
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
                     trial_id = (
                         trial_id.removeprefix("JPRN-")
                         .removeprefix("CTIS")
                         .removeprefix("PER-")
+<<<<<<< HEAD
                     )
 =======
                     trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-").removeprefix("NL-OMON")
 >>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
+=======
+                        .removeprefix("NL-OMON")
+                    )
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
                     who_trial = Trial(prefix, trial_id)
 
@@ -104,29 +130,41 @@ class WhoFetcher(Fetcher):
                         logger.debug(
                             f"Error in design attribute for curie: {who_trial.curie} using fallback"
                         )
+<<<<<<< HEAD
                         pass
+=======
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
                     if who_trial.design is None:
-                        who_trial.design = DesignInfo(fallback=make_str(trial[19]))
+                        who_trial.design = DesignInfo(
+                            fallback=make_str(trial[19])
+                        )
 
                     who_trial.conditions = [
-                        BioEntity(
+                        Condition(
                             term=condition,
                             origin=who_trial.curie,
+<<<<<<< HEAD
                             labels=["condition"],
+=======
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
                             source=self.config.registry,
                         )
                         for condition in make_list(trial[29], ";")
                     ]
                     who_trial.interventions = [
-                        BioEntity(
+                        Intervention(
                             term=intervention,
                             origin=who_trial.curie,
+<<<<<<< HEAD
                             labels=["intervention"],
+=======
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
                             source=self.config.registry,
                         )
                         for intervention in make_list(trial[30], ";")
                         if intervention != "NULL"
+<<<<<<< HEAD
                     ]
                     who_trial.primary_outcomes = [Outcome(measure=make_str(trial[36]))]
 <<<<<<< HEAD
@@ -138,28 +176,43 @@ class WhoFetcher(Fetcher):
                     ]
 =======
                     who_trial.secondary_outcomes = [Outcome(measure=make_str(trial[37]))]
+=======
+                    ]
+                    who_trial.primary_outcomes = [
+                        Outcome(measure=make_str(trial[36]))
+                    ]
+                    who_trial.secondary_outcomes = [
+                        Outcome(measure=make_str(trial[37]))
+                    ]
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
-                    who_trial.criteria = [
+                    who_trial.genes = [
                         Criteria(
-                            type='inclusion',
+                            type="inclusion",
                             text=make_str(trial[34]),
                             origin=who_trial.curie,
-                            source=self.config.registry
+                            source=self.config.registry,
                         )
                     ]
-                    who_trial.criteria.extend(
+                    who_trial.genes.extend(
                         [
                             Criteria(
-                                type='exclusion',
+                                type="exclusion",
                                 text=make_str(trial[35]),
                                 origin=who_trial.curie,
-                                source=self.config.registry
+                                source=self.config.registry,
                             )
                         ]
                     )
 
+<<<<<<< HEAD
                     who_trial.secondary_ids = [SecondaryId(id=id) for id in make_list(trial[2], ';')]
 >>>>>>> bbf3f7f (structuring inclusion/exclusion criteria through gilda grounder)
+=======
+                    who_trial.secondary_ids = [
+                        SecondaryId(id=id) for id in make_list(trial[2], ";")
+                    ]
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
                     who_trial.source = self.config.registry
                     self.raw_data.append(who_trial)
         self.save_raw_data()

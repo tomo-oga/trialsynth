@@ -19,4 +19,6 @@ def test_stability():
     try:
         fetch.CTFetcher(configuration)._read_next_page()
     except ValidationError as exc:
-        pytest.fail(f"Unexpected error while flattening API response data: {exc}")
+        pytest.fail(
+            f"Unexpected error while flattening API response data: {exc}"
+        )

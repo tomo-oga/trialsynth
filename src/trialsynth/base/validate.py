@@ -54,12 +54,12 @@ class Validator:
                 unit=name,
                 unit_scale=True,
             )
-            data.progress_apply(
-                lambda x, data_type=data_type: self.validate_data(data_type, x)
-            )
+            data.progress_apply(lambda x: self.validate_data(data_type, x))
 
     def create_rows(self):
-        logger.info(f"Loading data to validate from compressed tsv file: {self.path}")
+        logger.info(
+            f"Loading data to validate from compressed tsv file: {self.path}"
+        )
 
         n_lines = sum(1 for line in gzip.open(self.path, mode="rt"))
         with tqdm(
@@ -122,7 +122,9 @@ class Validator:
             return ""
 
         if isinstance(value, str):
-            value_list = value.split(";") if data_type.endswith("[]") else [value]
+            value_list = (
+                value.split(";") if data_type.endswith("[]") else [value]
+            )
         else:
             value_list = [value]
         value_list = [val for val in value_list if val not in null_data]
@@ -165,7 +167,12 @@ class Validator:
         if data_type == "DESIGN":
             for val in value_list:
                 design_attrs = [val.strip() for val in val.split(";")]
-                attr_labels = ["Purpose:", "Allocation:", "Masking:", "Assignment:"]
+                attr_labels = [
+                    "Purpose:",
+                    "Allocation:",
+                    "Masking:",
+                    "Assignment:",
+                ]
 
                 invalid_format = True
 
@@ -189,7 +196,9 @@ class Validator:
 
                 invalid_format = len(outcome_attrs) != 2
 
-                for outcome_attr, attr_label in zip(outcome_attrs, attr_labels):
+                for outcome_attr, attr_label in zip(
+                    outcome_attrs, attr_labels
+                ):
                     invalid_format = not outcome_attr.startswith(attr_label)
 
                 msg = f"Outcome data '{val}' not in expected format."

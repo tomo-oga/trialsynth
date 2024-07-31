@@ -81,9 +81,15 @@ class CTFetcher(Fetcher):
         self.api_parameters["pageToken"] = json_data.get("nextPageToken")
 
         if not self.total_pages:
+<<<<<<< HEAD
             self.total_pages = json_data.get("totalCount") / self.api_parameters.get(
                 "pageSize"
             )
+=======
+            self.total_pages = json_data.get(
+                "totalCount"
+            ) / self.api_parameters.get("pageSize")
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
     def _json_to_trials(self, data: dict) -> list[Trial]:
         trials = []
@@ -92,7 +98,12 @@ class CTFetcher(Fetcher):
             rest_trial = UnflattenedTrial(**study)
 
             trial = Trial(
+<<<<<<< HEAD
                 ns="clinicaltrials", id=rest_trial.protocol_section.id_module.nct_id
+=======
+                ns="clinicaltrials",
+                id=rest_trial.protocol_section.id_module.nct_id,
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
             )
 
             trial.title = rest_trial.protocol_section.id_module.brief_title
@@ -117,7 +128,13 @@ class CTFetcher(Fetcher):
             condition_meshes = (
                 rest_trial.derived_section.condition_browse_module.condition_meshes
             )
+<<<<<<< HEAD
             conditions = rest_trial.protocol_section.conditions_module.conditions
+=======
+            conditions = (
+                rest_trial.protocol_section.conditions_module.conditions
+            )
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
             trial.conditions = [
                 BioEntity(
                     term=condition,
@@ -186,9 +203,16 @@ class CTFetcher(Fetcher):
                 Outcome(o.measure, o.time_frame) for o in secondary_outcomes
             ]
 
-            secondary_info = rest_trial.protocol_section.id_module.secondary_ids
+            secondary_info = (
+                rest_trial.protocol_section.id_module.secondary_ids
+            )
             trial.secondary_ids = [
+<<<<<<< HEAD
                 SecondaryId(ns=s.id_type, id=s.secondary_id) for s in secondary_info
+=======
+                SecondaryId(ns=s.id_type, id=s.secondary_id)
+                for s in secondary_info
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
             ]
 
             trial.source = self.config.registry

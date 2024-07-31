@@ -46,11 +46,10 @@ class Fetcher:
         reload : bool
             Whether to reload the data from the API
         """
-        pass
 
     def save_raw_data(self):
         """Pickles raw trial data as a list of :class:`Trial` objects to disk"""
-        logger.info(f"Pickling raw trial data to {self.config.raw_data_path}")
+        logger.info("Pickling raw trial data to %s", self.config.raw_data_path)
         with gzip.open(self.config.raw_data_path, "wb") as file:
             pickle.dump(self.raw_data, file)
 
@@ -67,14 +66,17 @@ class Fetcher:
             return response.json()
         except Exception:
             logger.exception(
-                f"Error with request to {self.url} using params {self.api_parameters}"
+                "Error with request to %s using params %s",
+                self.url,
+                self.api_parameters,
             )
             raise
 
     def load_saved_data(self) -> None:
         """Load saved data as a list of :class:`Trial` objects from disk"""
         logger.info(
-            f"Loading saved data from {self.config.raw_data_path}. This may take a bit."
+            "Loading saved data from %s. This may take a bit.",
+            self.config.raw_data_path,
         )
         with gzip.open(self.config.raw_data_path, "r") as file:
             self.raw_data = pickle.load(file)

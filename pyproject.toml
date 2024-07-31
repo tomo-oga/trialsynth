@@ -23,7 +23,11 @@ python = ">=3.10"
 gilda = "^1.1.0"
 pandas = "^2.2.2"
 tqdm = "^4.66.2"
+<<<<<<< HEAD
 indra = { git = "https://github.com/sorgerlab/indra.git" }
+=======
+indra = {git = "https://github.com/sorgerlab/indra.git"}
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 requests = "^2.31.0"
 click = "^8.1.7"
 addict = "^2.4.0"

@@ -44,7 +44,10 @@ def save_data_as_flatfile(
 
         data_length = len(rows)
         with tqdm(
-            total=data_length, desc="Writing data to file", unit="row", unit_scale=True
+            total=data_length,
+            desc="Writing data to file",
+            unit="row",
+            unit_scale=True,
         ) as pbar:
             for i in range(0, data_length, chunk_size):
                 data_writer.writerows(rows[i : i + chunk_size])

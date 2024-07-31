@@ -7,7 +7,9 @@ from .validate import CTValidator
 
 
 class CTProcessor(Processor):
-    def __init__(self, reload_api_data: bool, store_samples: bool, validate: bool):
+    def __init__(
+        self, reload_api_data: bool, store_samples: bool, validate: bool
+    ):
         super().__init__(
             config=CTConfig(),
             fetcher=CTFetcher(CTConfig()),

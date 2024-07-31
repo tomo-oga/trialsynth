@@ -1,11 +1,12 @@
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 import indra.statements.agent as agent
 from bioregistry import curie_to_str
 from indra.ontology.standardize import standardize_name_db_refs
 
 logger = logging.getLogger(__name__)
+
 
 class SecondaryId:
     """Secondary ID for a trial
@@ -157,7 +158,92 @@ class Node:
 
     @curie.setter
     def curie(self, curie: str):
-        self.ns, self.id = curie.split(':')
+        self.ns, self.id = curie.split(":")
+
+
+class BioEntity(Node):
+    """Holds information about a biological entity
+
+    Attributes
+    ----------
+    ns: str
+        The namespace of the bioentity
+    id: str
+        The ID of the bioentity
+    source: Optional[str]
+        The source registry of the bioentity
+    text: str
+        The text term of the bioentity from the given namespace
+    origin: Optional[str]
+        The trial CURIE that the bioentity is associated with
+
+    Parameters
+    ----------
+    term: str
+        The text term of the bioentity from the given namespace
+    labels: list[str]
+        The labels of the bioentity
+    origin: str
+        The trial CURIE that the bioentity is associated with
+    source: Optional[str]
+        The source registry of the bioentity.
+    ns: Optional[str]
+        The namespace of the bioentity (default: None).
+    id: Optional[str]
+        The ID of the bioentity (default: None).
+    """
+
+    def __init__(
+        self,
+        term: str,
+        labels: list[str],
+        origin: str,
+        source: str,
+        ns: Optional[str] = None,
+        id: Optional[str] = None,
+    ):
+        super().__init__(ns=ns, id=id, source=source)
+        self.labels = ["bioentity"]
+        self.labels.extend(labels)
+        self.text: str = term
+        self.origin: str = origin
+
+
+class Condition(BioEntity):
+    """
+    Represents a condition.
+
+    Parameters
+    ----------
+    term: str
+        The text term of the bioentity from the given namespace
+    labels: list[str]
+        The labels of the bioentity
+    origin: str
+        The trial CURIE that the bioentity is associated with
+    source: Optional[str]
+        The source registry of the bioentity.
+    ns: Optional[str]
+        The namespace of the bioentity (default: None).
+    id: Optional[str]
+        The ID of the bioentity (default: None).
+    """
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.labels.extend("condition")
+
+
+class Intervention(BioEntity):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.labels.extend("intervention")
+
+
+class Gene(BioEntity):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.labels.extend("gene")
 
 
 class Trial(Node):
@@ -213,81 +299,15 @@ class Trial(Node):
         if labels:
             self.labels.extend(labels)
 
+        # TODO: make lists only hold their type i.e. list[Condition], where a node has a __str__ method to turn into CURIEs
         self.title: Optional[str] = None
-        self.design: Optional[DesignInfo] = None
-        self.conditions: list[BioEntity] = []
-        self.interventions: list[BioEntity] = []
-        self.primary_outcomes: list[Outcome] = []
-        self.secondary_outcomes: list[Outcome] = []
+        self.design: DesignInfo = DesignInfo()
+        self.conditions: list[Union[Condition, str]] = []
+        self.interventions: list[Union[Intervention, str]] = []
+        self.primary_outcomes: list[Union[Outcome, str]] = []
+        self.secondary_outcomes: list[Union[Outcome, str]] = []
+        self.genes: list[Union[Gene, str]] = []
         self.secondary_ids: list[SecondaryId] = []
-
-
-class BioEntity(Node):
-    """Holds information about a biological entity
-
-    Attributes
-    ----------
-    ns: str
-        The namespace of the bioentity
-    id: str
-        The ID of the bioentity
-    source: Optional[str]
-        The source registry of the bioentity
-    term: str
-        The text term of the bioentity from the given namespace
-    origin: Optional[str]
-        The trial CURIE that the bioentity is associated with
-
-    Parameters
-    ----------
-    term: str
-        The text term of the bioentity from the given namespace
-    labels: list[str]
-        The labels of the bioentity
-    origin: str
-        The trial CURIE that the bioentity is associated with
-    source: Optional[str]
-        The source registry of the bioentity.
-    ns: Optional[str]
-        The namespace of the bioentity (default: None).
-    id: Optional[str]
-        The ID of the bioentity (default: None).
-    """
-
-    def __init__(
-        self,
-        term: str,
-        labels: list[str],
-        origin: str,
-        source: str,
-        ns: Optional[str] = None,
-        id: Optional[str] = None,
-    ):
-        super().__init__(ns=ns, id=id, source=source)
-        self.labels = ["bioentity"]
-        self.labels.extend(labels)
-        self.term: str = term
-        self.origin: str = origin
-
-
-class Criteria(Node):
-    def __init__(self, type: str, text: str, origin: str, source: str):
-        super().__init__(source=source)
-        self._type = None
-        self.type = type
-        self.text = text
-        self.origin = origin
-        self.labels = ['criteria']
-
-    @property
-    def type(self):
-        return self._type
-
-    @type.setter
-    def type(self, type: str):
-        if type not in ['inclusion', 'exclusion']:
-            raise ValueError(f'Criteria type {type} not recognized')
-        self._type = type
 
 
 class Edge:
@@ -321,7 +341,8 @@ class Edge:
         }
         if rel_type not in rel_type_to_curie.keys():
             logger.warning(
-                f"Relationship type: {rel_type} not defined. Defaulting to empty string for curie"
+                "Relationship type: %s not defined. Defaulting to empty string for curie",
+                rel_type,
             )
             self.rel_type_curie = ""
         else:

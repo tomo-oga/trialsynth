@@ -44,8 +44,17 @@ class DesignInfo(BaseModel):
     masking_info: DesignMaskingInfo = Field(
         alias="maskingInfo", default=DesignMaskingInfo()
     )
+<<<<<<< HEAD
     intervention_assignment: str = Field(alias="interventionModel", default=None)
     observation_assignment: str = Field(alias="observationalModel", default=None)
+=======
+    intervention_assignment: str = Field(
+        alias="interventionModel", default=None
+    )
+    observation_assignment: str = Field(
+        alias="observationalModel", default=None
+    )
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
 
 class DesignModule(BaseModel):
@@ -72,7 +81,9 @@ class Intervention(BaseModel):
 
 class ArmsInterventionsModule(BaseModel):
 
-    arms_interventions: list[Intervention] = Field(alias="interventions", default=[])
+    arms_interventions: list[Intervention] = Field(
+        alias="interventions", default=[]
+    )
 
 
 class Mesh(BaseModel):
@@ -98,7 +109,13 @@ class Outcome(BaseModel):
 
 class OutcomesModule(BaseModel):
     primary_outcome: list[Outcome] = Field(alias="primaryOutcomes", default=[])
+<<<<<<< HEAD
     secondary_outcome: list[Outcome] = Field(alias="secondaryOutcomes", default=[])
+=======
+    secondary_outcome: list[Outcome] = Field(
+        alias="secondaryOutcomes", default=[]
+    )
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
 
 
 class ProtocolSection(BaseModel):
@@ -107,7 +124,13 @@ class ProtocolSection(BaseModel):
     conditions_module: ConditionsModule = Field(
         alias="conditionsModule", default=ConditionsModule()
     )
+<<<<<<< HEAD
     design_module: DesignModule = Field(alias="designModule", default=DesignModule())
+=======
+    design_module: DesignModule = Field(
+        alias="designModule", default=DesignModule()
+    )
+>>>>>>> ad9fdc8 (adding BioEntity types and linting/formatting with trunk)
     arms_interventions_module: ArmsInterventionsModule = Field(
         alias="armsInterventionsModule", default=ArmsInterventionsModule()
     )
