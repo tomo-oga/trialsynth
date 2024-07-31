@@ -72,6 +72,8 @@ class Transformer:
         for entity in entities:
             entity.ns = entity.ns.lower()
             transformed_entities.append(entity.curie)
+
+        transformed_entities = sorted(transformed_entities)
         return join_list_to_str(transformed_entities)
 
 

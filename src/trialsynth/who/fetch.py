@@ -122,7 +122,7 @@ class WhoFetcher(Fetcher):
 
                     who_trial.entities.extend([
                         Gene(text=gene, labels=['exclusion'], origin=who_trial.curie, source=self.config.registry)
-                        for gene in make_list(.replace('<br>', ''), ';')
+                        for gene in make_list(trial[35].replace('<br>', ''), ';')
                     ])
 
                     who_trial.primary_outcomes = [Outcome(measure=make_str(trial[36]))]
