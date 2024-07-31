@@ -1,15 +1,15 @@
 import csv
+import logging
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
-from ..base.fetch import Fetcher, logger
 from ..base.config import Config
-from ..base.models import Trial
-from ..base.models import BioEntity, Outcome, SecondaryId, DesignInfo
-from ..base.util import make_str, make_list
+from ..base.fetch import Fetcher
+from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
+from ..base.util import NAMESPACES, make_list, make_str
 
-from ..base.util import NAMESPACES
+logger = logging.getLogger(__name__)
 
 
 class WhoFetcher(Fetcher):
@@ -32,20 +32,23 @@ class WhoFetcher(Fetcher):
         if trial_path.is_file() and not reload:
             self.load_saved_data()
             return
-        path = self.config.get_data_path('ICTRP.csv')
-        with open(path, 'r') as file:
+        path = self.config.get_data_path("ICTRP.csv")
+        with open(path, "r") as file:
             trials = [trial for trial in file]
 
             for trial in tqdm(
-                    csv.reader(trials),
-                    desc="Reading CSV WHO data",
-                    total=len(trials), unit='trials'
+                csv.reader(trials),
+                desc="Reading CSV WHO data",
+                total=len(trials),
+                unit="trials",
             ):
                 with logging_redirect_tqdm():
                     trial_id = trial[0].strip()
-                    trial_id = trial_id.replace('\ufeff', '')
-                    for p, prefix in NAMESPACES.items():
+                    trial_id = trial_id.replace("\ufeff", "")
+                    prefix = None
+                    for p, pfix in NAMESPACES.items():
                         if trial_id.startswith(p) or trial_id.startswith(p.lower()):
+                            prefix = pfix
                             break
                     else:
                         msg = f"could not identify {trial_id}"
@@ -57,30 +60,40 @@ class WhoFetcher(Fetcher):
 
                         # handling inconsistencies with ChiCTR trial IDs
                     if trial_id.lower().startswith("chictr-"):
-                        trial_id = "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
+                        trial_id = (
+                            "ChiCTR-" + trial_id.lower().removeprefix("chictr-").upper()
+                        )
 
-                    trial_id = trial_id.removeprefix("JPRN-").removeprefix("CTIS").removeprefix("PER-")
+                    trial_id = (
+                        trial_id.removeprefix("JPRN-")
+                        .removeprefix("CTIS")
+                        .removeprefix("PER-")
+                    )
 
                     who_trial = Trial(prefix, trial_id)
 
                     who_trial.title = make_str(trial[3])
                     who_trial.labels.append(make_str(trial[18]))
 
-                    design_list = [design.strip() for design in make_list(trial[19], '.')]
+                    design_list = [
+                        design.strip() for design in make_list(trial[19], ".")
+                    ]
                     design_dict = {}
 
                     try:
                         for design_attr in design_list:
-                            key, value = design_attr.split(':', 1)
+                            key, value = design_attr.split(":", 1)
                             design_dict[key.strip().lower()] = value.strip()
                         who_trial.design = DesignInfo(
-                            allocation=design_dict.get('allocation'),
-                            assignment=design_dict.get('intervention model'),
-                            masking=design_dict.get('masking'),
-                            purpose=design_dict.get('primary purpose')
+                            allocation=design_dict.get("allocation"),
+                            assignment=design_dict.get("intervention model"),
+                            masking=design_dict.get("masking"),
+                            purpose=design_dict.get("primary purpose"),
                         )
                     except Exception:
-                        logger.debug(f"Error in design attribute for curie: {who_trial.curie} using fallback")
+                        logger.debug(
+                            f"Error in design attribute for curie: {who_trial.curie} using fallback"
+                        )
                         pass
 
                     if who_trial.design is None:
@@ -90,23 +103,28 @@ class WhoFetcher(Fetcher):
                         BioEntity(
                             term=condition,
                             origin=who_trial.curie,
-                            labels=['condition'],
-                            source=self.config.registry
+                            labels=["condition"],
+                            source=self.config.registry,
                         )
-                        for condition in make_list(trial[29], ';')
+                        for condition in make_list(trial[29], ";")
                     ]
                     who_trial.interventions = [
                         BioEntity(
                             term=intervention,
                             origin=who_trial.curie,
-                            labels=['intervention'],
-                            source=self.config.registry
+                            labels=["intervention"],
+                            source=self.config.registry,
                         )
-                        for intervention in make_list(trial[30], ';') if intervention != 'NULL'
+                        for intervention in make_list(trial[30], ";")
+                        if intervention != "NULL"
                     ]
                     who_trial.primary_outcomes = [Outcome(measure=make_str(trial[36]))]
-                    who_trial.secondary_outcomes = [Outcome(measure=make_str(trial[37]))]
-                    who_trial.secondary_ids = [SecondaryId(id=id) for id in make_list(trial[2], ';')]
+                    who_trial.secondary_outcomes = [
+                        Outcome(measure=make_str(trial[37]))
+                    ]
+                    who_trial.secondary_ids = [
+                        SecondaryId(id=id) for id in make_list(trial[2], ";")
+                    ]
                     who_trial.source = self.config.registry
                     self.raw_data.append(who_trial)
         self.save_raw_data()
