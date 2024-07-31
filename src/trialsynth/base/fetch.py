@@ -1,7 +1,8 @@
-import logging
-import requests
-import pickle
 import gzip
+import logging
+import pickle
+
+import requests
 
 from .config import Config
 from .models import Trial
@@ -29,6 +30,7 @@ class Fetcher:
     config : Config
         User-mutable properties of registry data processing
     """
+
     def __init__(self, config: Config):
         self.config: Config = config
         self.raw_data: list[Trial] = list()
@@ -48,8 +50,8 @@ class Fetcher:
 
     def save_raw_data(self):
         """Pickles raw trial data as a list of :class:`Trial` objects to disk"""
-        logger.info(f'Pickling raw trial data to {self.config.raw_data_path}')
-        with gzip.open(self.config.raw_data_path, 'wb') as file:
+        logger.info(f"Pickling raw trial data to {self.config.raw_data_path}")
+        with gzip.open(self.config.raw_data_path, "wb") as file:
             pickle.dump(self.raw_data, file)
 
     def send_request(self) -> dict:
@@ -64,11 +66,15 @@ class Fetcher:
             response = requests.get(self.url, self.api_parameters)
             return response.json()
         except Exception:
-            logger.exception(f"Error with request to {self.url} using params {self.api_parameters}")
+            logger.exception(
+                f"Error with request to {self.url} using params {self.api_parameters}"
+            )
             raise
 
     def load_saved_data(self) -> None:
         """Load saved data as a list of :class:`Trial` objects from disk"""
-        logger.info(f"Loading saved data from {self.config.raw_data_path}. This may take a bit.")
-        with gzip.open(self.config.raw_data_path, 'r') as file:
+        logger.info(
+            f"Loading saved data from {self.config.raw_data_path}. This may take a bit."
+        )
+        with gzip.open(self.config.raw_data_path, "r") as file:
             self.raw_data = pickle.load(file)

@@ -1,9 +1,9 @@
-from typing import Union, Optional
 import logging
+from typing import Optional
 
+import indra.statements.agent as agent
 from bioregistry import curie_to_str
 from indra.ontology.standardize import standardize_name_db_refs
-import indra.statements.agent as agent
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ class SecondaryId:
     id : str
         The ID of the secondary ID
     """
+
     def __init__(self, ns: str = None, id: str = None):
         self.ns = ns
         self.id = id
@@ -69,7 +70,15 @@ class DesignInfo:
     fallback : Optional[str]
         The fallback design information, if the design information is not in the expected format
     """
-    def __init__(self, purpose=None, allocation=None, masking=None, assignment=None, fallback: Optional[str] = None):
+
+    def __init__(
+        self,
+        purpose=None,
+        allocation=None,
+        masking=None,
+        assignment=None,
+        fallback: Optional[str] = None,
+    ):
         self.purpose: str = purpose
         self.allocation: str = allocation
         self.masking: str = masking
@@ -94,12 +103,14 @@ class Outcome:
     time_frame : str
         The time frame of the outcome
     """
+
     def __init__(self, measure: str = None, time_frame: str = None):
         self.measure = measure
         self.time_frame = time_frame
 
 
 # types of all nodes should be standardized to a class holding enumerations in the future.
+
 
 class Node:
     """Node for a trial or bioentity
@@ -124,10 +135,10 @@ class Node:
     """
 
     def __init__(
-            self,
-            source: str,
-            ns: str = None,
-            id: str = None,
+        self,
+        source: str,
+        ns: str = None,
+        id: str = None,
     ):
         self.ns: str = ns
         self.id: str = id
@@ -144,9 +155,6 @@ class Node:
             self.id = id
 
         return curie_to_str(self.ns.lower(), self.id)
-
-    def match(self, other: 'Node') -> bool:
-        return self.curie == other.curie
 
 
 class Trial(Node):
@@ -188,15 +196,22 @@ class Trial(Node):
     source : Optional[str]
         The source registry of the trial (default: None).
     """
-    def __init__(self, ns: str, id: str, labels: Optional[list[str]] = None, source: Optional[str] = None):
+
+    def __init__(
+        self,
+        ns: str,
+        id: str,
+        labels: Optional[list[str]] = None,
+        source: Optional[str] = None,
+    ):
         super().__init__(ns=ns, id=id, source=source)
-        self.labels: list[str] = ['clinicaltrial']
+        self.labels: list[str] = ["clinicaltrial"]
 
         if labels:
             self.labels.extend(labels)
 
         self.title: Optional[str] = None
-        self.design: Optional[DesignInfo, str] = None
+        self.design: Optional[DesignInfo] = None
         self.conditions: list[BioEntity] = []
         self.interventions: list[BioEntity] = []
         self.primary_outcomes: list[Outcome] = []
@@ -235,17 +250,18 @@ class BioEntity(Node):
     id: Optional[str]
         The ID of the bioentity (default: None).
     """
+
     def __init__(
-            self,
-            term: str,
-            labels: list[str],
-            origin: str,
-            source: str,
-            ns: Optional[str] = None,
-            id: Optional[str] = None,
+        self,
+        term: str,
+        labels: list[str],
+        origin: str,
+        source: str,
+        ns: Optional[str] = None,
+        id: Optional[str] = None,
     ):
         super().__init__(ns=ns, id=id, source=source)
-        self.labels = ['bioentity']
+        self.labels = ["bioentity"]
         self.labels.extend(labels)
         self.term: str = term
         self.origin: str = origin
@@ -268,7 +284,10 @@ class Edge:
     source: str
         The source of the relationship
     """
-    def __init__(self, bio_ent_curie: str, trial_curie: str, rel_type: str, source: str):
+
+    def __init__(
+        self, bio_ent_curie: str, trial_curie: str, rel_type: str, source: str
+    ):
         self.bio_ent_curie = bio_ent_curie
         self.trial_curie = trial_curie
         self.rel_type = rel_type
@@ -276,10 +295,12 @@ class Edge:
 
         rel_type_to_curie = {
             "has_condition": "debio:0000036",
-            "has_intervention": "debio:0000035"
+            "has_intervention": "debio:0000035",
         }
         if rel_type not in rel_type_to_curie.keys():
-            logger.warning(f'Relationship type: {rel_type} not defined. Defaulting to empty string for curie')
-            self.rel_type_curie = ''
+            logger.warning(
+                f"Relationship type: {rel_type} not defined. Defaulting to empty string for curie"
+            )
+            self.rel_type_curie = ""
         else:
             self.rel_type_curie = rel_type_to_curie[rel_type]

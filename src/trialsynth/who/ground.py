@@ -14,7 +14,7 @@ class WhoInterventionGrounder(InterventionGrounder):
     @overrides
     def preprocess(self, entity: BioEntity, *kwargs) -> BioEntity:
         try:
-            *_, intervention_term = entity.term.split(':')
+            *_, intervention_term = entity.term.split(":")
         except Exception:
             intervention_term = entity.term
 
