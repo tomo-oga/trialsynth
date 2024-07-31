@@ -63,7 +63,7 @@ class Fetcher:
             JSON response from API
         """
         try:
-            response = requests.get(self.url, self.api_parameters)
+            response = requests.get(self.url, self.api_parameters, timeout=10)
             return response.json()
         except Exception:
             logger.exception(
