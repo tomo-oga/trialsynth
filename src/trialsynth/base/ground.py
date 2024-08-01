@@ -12,10 +12,10 @@ from .util import CONDITION_NS, GENE_NS, INTERVENTION_NS, must_override
 
 grounder = gilda.Grounder()
 
-def annotate(text: str, namespaces: Optional[list[str]] = None, context: Optional[str] = None, pre_grounded_terms: set[str] = None) -> list[gilda.ScoredMatch]:
+def annotate(text: str, namespaces: Optional[list[str]] = None, context: Optional[str] = None, pre_grounded_terms: set[str] = None) -> list[list[gilda.ScoredMatch]]:
     if not pre_grounded_terms:
         pre_grounded_terms = set()
-    grounded_terms: list[gilda.ScoredMatch] = []
+    grounded_terms: list[list[gilda.ScoredMatch]] = []
 
     context = context if context else text
 
@@ -48,12 +48,12 @@ def annotate(text: str, namespaces: Optional[list[str]] = None, context: Optiona
                     skip_until = i + span
                     break
 
-                match = grounder.ground_best(raw_span, context=context, namespaces=namespaces)
+                matches = grounder.ground(raw_span, context=context, namespaces=namespaces)
 
-                if match:
+                if matches:
                     pre_grounded_terms.add(raw_span.lower())
 
-                    grounded_terms.append(match)
+                    grounded_terms.append(matches)
 
                     skip_until = i + span
                     break
@@ -126,18 +126,17 @@ class Grounder:
                 yield entity
             else:
                 if entity.text not in grounded_terms:
-                    grounded_terms.add(entity.text.lower())
-
                     matches = grounder.ground(entity.text, namespaces=['MESH'])
                     if matches:
+                        grounded_terms.add(entity.text.lower())
                         match = matches[0].term
                         entity.ns, entity.id, entity.text = match.db, match.id, match.entry_name
-                    yield entity
+                        yield entity
         else:
             if entity.text not in grounded_terms:
-                grounded_terms.add(entity.text.lower())
                 matches = grounder.ground(entity.text, namespaces=self.namespaces, context=context)
                 if matches:
+                    grounded_terms.add(entity.text.lower())
                     match = matches[0].term
                     entity.ns, entity.id, entity.text = (
                         match.db,
@@ -148,7 +147,7 @@ class Grounder:
                 else:
                     matches = annotate(entity.text, namespaces=self.namespaces, context=context, pre_grounded_terms=grounded_terms)
                     for match in matches:
-                        match = match.term
+                        match = match[0].term
                         annotated_entity = copy.deepcopy(entity)
                         annotated_entity.text = match.entry_name
                         annotated_entity.ns = match.db
