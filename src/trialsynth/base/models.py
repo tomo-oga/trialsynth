@@ -8,6 +8,15 @@ from indra.ontology.standardize import standardize_name_db_refs
 logger = logging.getLogger(__name__)
 
 
+class TrialSynthIdGenerator:
+    def __init__(self):
+        self.num = 0
+    def __call__(self) -> str:
+        self.num += 1
+        return '{:07d}'.format(self.num)
+
+IDGenerator = TrialSynthIdGenerator()
+
 class SecondaryId:
     """Secondary ID for a trial
 
@@ -138,27 +147,27 @@ class Node:
         self,
         source: str,
         ns: str = None,
-        id: str = None,
+        ns_id: str = None,
     ):
         self.ns: str = ns
-        self.id: str = id
+        self.ns_id: str = ns_id
         self.labels: list[str] = []
         self.source: str = source
 
     @property
     def curie(self) -> str:
         """Creates a CURIE from the namespace and ID"""
-        std_name, db_ref = standardize_name_db_refs({self.ns: self.id})
+        _, db_ref = standardize_name_db_refs({self.ns: self.ns_id})
         ns, id = agent.get_grounding(db_ref)
         if ns and id:
             self.ns = ns
-            self.id = id
+            self.ns_id = id
 
-        return curie_to_str(self.ns.lower(), self.id)
+        return curie_to_str(self.ns.lower(), self.ns_id)
 
     @curie.setter
     def curie(self, curie: str):
-        self.ns, self.id = curie.split(":")
+        self.ns, self.ns_id = curie.split(":")
 
 
 class BioEntity(Node):
@@ -173,7 +182,9 @@ class BioEntity(Node):
     source: Optional[str]
         The source registry of the bioentity
     text: str
-        The text term of the bioentity from the given namespace
+        The free-text of the bioentity
+    grounded_term: str
+        The entry-term for the grounded bioentity from the given namespace
     origin: Optional[str]
         The trial CURIE that the bioentity is associated with
 
@@ -201,12 +212,14 @@ class BioEntity(Node):
         source: str,
         ns: Optional[str] = None,
         id: Optional[str] = None,
+        grounded_term: Optional[str] = None
     ):
-        super().__init__(ns=ns, id=id, source=source)
+        super().__init__(ns=ns, ns_id=id, source=source)
         self.labels = ["bioentity"]
         self.labels.extend(labels)
         self.text: str = text
         self.origin: str = origin
+        self.grounded_term = grounded_term
 
 
 class Condition(BioEntity):
@@ -274,6 +287,10 @@ class Gene(BioEntity):
             self.labels.extend(labels)
 
 
+class Criteria(Node):
+    def __init__(self, source: str):
+        super().__init__(source=source, ns='trialsynth', ns_id=IDGenerator())
+
 
 class Trial(Node):
     """Holds information about a clinical trial
@@ -322,7 +339,7 @@ class Trial(Node):
         labels: Optional[list[str]] = None,
         source: Optional[str] = None,
     ):
-        super().__init__(ns=ns, id=id, source=source)
+        super().__init__(source=source, ns=ns, ns_id=id)
         self.labels: list[str] = ["clinicaltrial"]
 
         if labels:

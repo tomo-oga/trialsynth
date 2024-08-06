@@ -140,12 +140,12 @@ def must_override(method):
         If the method is not implemented in the subclass
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args):
         cls = args[0].__class__
         if method.__name__ in cls.__dict__:
             raise NotImplementedError(
                 f"Class '{cls.__name__}' must override method '{method.__name__}'"
             )
-        return method(*args, **kwargs)
+        return method(*args)
 
     return wrapper

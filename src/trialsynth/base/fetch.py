@@ -31,9 +31,9 @@ class Fetcher:
         User-mutable properties of registry data processing
     """
     config: Config
+    api_parameters: dict
     def __init__(self):
         self.raw_data: list[Trial] = list()
-        self.api_parameters: dict = {}
         self.url = None
         self._config: Config = None
 

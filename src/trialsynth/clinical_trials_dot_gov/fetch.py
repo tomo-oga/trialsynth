@@ -5,7 +5,15 @@ from overrides import overrides
 from tqdm import tqdm
 
 from ..base.fetch import Fetcher, logger
-from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
+from ..base.models import (
+    BioEntity,
+    Condition,
+    DesignInfo,
+    Intervention,
+    Outcome,
+    SecondaryId,
+    Trial,
+)
 from .rest_api_response_models import UnflattenedTrial
 
 
@@ -62,7 +70,7 @@ class CTFetcher(Fetcher):
                 unit_scale=True,
             ) as pbar:
                 pbar.update(page_size)
-                for _ in range(1):
+                for _ in range(5):
                     self._read_next_page()
                     pbar.update(page_size)
 
@@ -73,7 +81,14 @@ class CTFetcher(Fetcher):
         self.save_raw_data()
 
     def _read_next_page(self):
-        response = requests.get(self.url, self.api_parameters, timeout=10)
+
+        # TODO: timeout should be a config var
+        timeout = 300
+        try: 
+            response = requests.get(self.url, self.api_parameters, timeout=timeout)
+        except TimeoutError:
+            logger.info(f'Connection timed-out after {timeout}s. To avoid this, either set the timeout max higher, or establish a better internet connection.')
+            raise
         response.raise_for_status()
         json_data = response.json()
 
@@ -123,22 +138,22 @@ class CTFetcher(Fetcher):
             conditions = (
                 rest_trial.protocol_section.conditions_module.conditions
             )
-            trial.conditions = [
-                BioEntity(
-                    term=condition,
+            trial.entities = [
+                Condition(
+                    text=condition,
                     labels=["condition"],
                     origin=trial.curie,
                     source=self.config.registry,
                 )
                 for condition in conditions
             ]
-            trial.conditions.extend(
+            trial.entities.extend(
                 [
-                    BioEntity(
+                    Condition(
                         ns="MESH",
                         id=mesh.mesh_id,
                         labels=["condition"],
-                        term=mesh.term,
+                        text=mesh.term,
                         origin=trial.curie,
                         source=self.config.registry,
                     )
@@ -153,22 +168,22 @@ class CTFetcher(Fetcher):
                 rest_trial.derived_section.intervention_browse_module.intervention_meshes
             )
 
-            trial.interventions = [
-                BioEntity(
-                    term=i.name,
+            trial.entities.extend([
+                Intervention(
+                    text=i.name,
                     labels=["intervention", i.intervention_type],
                     origin=trial.curie,
                     source=self.config.registry,
                 )
                 for i in intervention_arms
                 if i.name
-            ]
-            trial.interventions.extend(
+            ])
+            trial.entities.extend(
                 [
-                    BioEntity(
+                    Intervention(
                         ns="MESH",
                         id=mesh.mesh_id,
-                        term=mesh.term,
+                        text=mesh.term,
                         labels=["intervention"],
                         origin=trial.curie,
                         source=self.config.registry,

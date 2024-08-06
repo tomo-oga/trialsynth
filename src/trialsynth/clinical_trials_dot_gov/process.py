@@ -1,7 +1,7 @@
 from ..base.process import Processor
 from .config import CTConfig
 from .fetch import CTFetcher
-from .ground import CTConditionGrounder, CTInterventionGrounder
+from .ground import CTConditionGrounder, CTInterventionGrounder, CTGeneGrounder
 from .transform import CTTransformer
 from .validate import CTValidator
 
@@ -12,11 +12,10 @@ class CTProcessor(Processor):
     ):
         super().__init__(
             config=CTConfig(),
-            fetcher=CTFetcher(CTConfig()),
+            fetcher=CTFetcher(),
             transformer=CTTransformer(),
             validator=CTValidator(),
-            condition_grounder=CTConditionGrounder(),
-            intervention_grounder=CTInterventionGrounder(),
+            grounders=(CTConditionGrounder(), CTInterventionGrounder(), CTGeneGrounder),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
             validate=validate,

@@ -193,9 +193,7 @@ class Processor:
                 with logging_redirect_tqdm():
                     trial = self.curie_to_trial[entity.origin]
 
-                    pre_grounded_terms = set(entity.text.lower() for entity in trial.entities if entity.text)
-
-                    entities = list(grounder(entity, trial.title, pre_grounded_terms))
+                    entities = list(grounder(entity, trial.title))
 
                     curie_to_entity = {entity.curie: entity for entity in entities}
                     trial.entities.extend(curie_to_entity.values())

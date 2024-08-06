@@ -40,7 +40,6 @@ class WhoFetcher(Fetcher):
         path = self.config.get_data_path("ICTRP.csv")
         with open(path, "r") as file:
             trials = [trial for trial in file]
-
             for trial in tqdm(
                 csv.reader(trials),
                 desc="Reading CSV WHO data",
