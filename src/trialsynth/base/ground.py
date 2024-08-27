@@ -231,9 +231,9 @@ class Grounder:
 
 class ConditionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=CONDITION_NS)
+        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'])
 
 
 class InterventionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=INTERVENTION_NS)
+        super().__init__(namespaces=INTERVENTION_NS, restrict_mesh_prefix=['D', 'E'])

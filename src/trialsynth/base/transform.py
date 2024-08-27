@@ -30,7 +30,6 @@ class Transformer:
             self.transform_design(trial),
             self.transform_entities(trial.conditions),
             self.transform_entities(trial.interventions),
-            self.transform_entities(trial.genes),
             self.transform_primary_outcome(trial),
             self.transform_secondary_outcome(trial),
             self.transform_secondary_ids(trial),

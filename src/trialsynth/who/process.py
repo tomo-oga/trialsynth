@@ -7,14 +7,19 @@ from .validate import WhoValidator
 
 
 class WhoProcessor(Processor):
-    def __init__(self, reload_api_data: bool, store_samples: bool, validate: bool):
+    def __init__(
+        self, reload_api_data: bool, store_samples: bool, validate: bool
+    ):
+        config = WhoConfig()
         super().__init__(
-            config=WhoConfig(),
-            fetcher=WhoFetcher(WhoConfig()),
+            config=config,
+            fetcher=WhoFetcher(config),
             transformer=WhoTransformer(),
             validator=WhoValidator(),
-            condition_grounder=WhoConditionGrounder(),
-            intervention_grounder=WhoInterventionGrounder(),
+            grounders=(
+                WhoConditionGrounder(),
+                WhoInterventionGrounder(),
+            ),
             reload_api_data=reload_api_data,
             store_samples=store_samples,
             validate=validate,

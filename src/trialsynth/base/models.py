@@ -394,8 +394,7 @@ class Trial(Node):
 
         self.title: Optional[str] = None
         self.design: DesignInfo = DesignInfo()
-        self.conditions: list[Condition] = []
-        self.interventions: list[Intervention] = []
+        self.entities: list[BioEntity] = []
         self.primary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_ids: list[SecondaryId] = []
