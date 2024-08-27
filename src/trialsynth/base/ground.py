@@ -1,14 +1,19 @@
 import copy
 import logging
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Callable, Tuple
 
 import gilda
 from gilda.grounder import Annotation
 from indra.databases import mesh_client
 
 from .models import BioEntity
-from .util import (CONDITION_NS, INTERVENTION_NS, must_override,
-                   suppress_logging_info, suppress_warnings)
+from .util import (
+    CONDITION_NS,
+    INTERVENTION_NS,
+    must_override,
+    suppress_logging_info,
+    suppress_warnings,
+)
 
 with suppress_logging_info():
     import scispacy
