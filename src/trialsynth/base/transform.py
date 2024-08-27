@@ -1,13 +1,14 @@
 from typing import Iterable, Tuple
 
 from .models import BioEntity, Edge, Node, Trial
+from .util import join_list_to_str
 
 
 class Transformer:
 
     def flatten_trial_data(
         self, trial: Trial
-    ) -> Tuple[str, str, str, str, str, str, str, str, str, str]:
+    ) -> Tuple:
         """Flattens trial data into a tuple of strings.
 
         Parameters
@@ -18,7 +19,7 @@ class Transformer:
         Returns
         -------
         transformed_data: Tuple
-            A tuple of the transformed data. In order of title, type, design, conditions, interventions,
+            A tuple of the transformed data. In order of title, type, design, conditions, interventions, genes,
             primary_outcome, secondary_outcome, secondary_ids.
 
         """
@@ -27,8 +28,9 @@ class Transformer:
             self.transform_title(trial),
             self.transform_labels(trial),
             self.transform_design(trial),
-            self.transform_conditions(trial),
-            self.transform_interventions(trial),
+            self.transform_entities(trial.conditions),
+            self.transform_entities(trial.interventions),
+            self.transform_entities(trial.genes),
             self.transform_primary_outcome(trial),
             self.transform_secondary_outcome(trial),
             self.transform_secondary_ids(trial),
@@ -38,12 +40,12 @@ class Transformer:
     @staticmethod
     def transform_secondary_ids(trial: Trial) -> str:
         """Transforms a list of secondary IDs into a string."""
-        return ";".join([id.curie for id in trial.secondary_ids])
+        return join_list_to_str([id.curie for id in trial.secondary_ids])
 
     @staticmethod
     def transform_secondary_outcome(trial: Trial) -> str:
         """Transforms the secondary outcome of a trial into a string."""
-        trial.secondary_outcomes = ";".join(
+        trial.secondary_outcomes = join_list_to_str(
             [
                 f'Measure: {outcome.measure.strip() if outcome.measure else ""}, '
                 f'Time Frame: {outcome.time_frame.strip() if outcome.time_frame else ""}'
@@ -55,7 +57,7 @@ class Transformer:
     @staticmethod
     def transform_primary_outcome(trial: Trial) -> str:
         """Transforms the primary outcome of a trial into a string."""
-        trial.primary_outcomes = ";".join(
+        trial.primary_outcomes = join_list_to_str(
             [
                 f'Measure: {outcome.measure.strip() if outcome.measure else ""}, '
                 f'Time Frame: {outcome.time_frame.strip() if outcome.time_frame else ""}'
@@ -65,20 +67,15 @@ class Transformer:
         return trial.primary_outcomes
 
     @staticmethod
-    def _transform_entities(entities: Iterable[BioEntity]) -> str:
+    def transform_entities(entities: Iterable[BioEntity]) -> str:
         transformed_entities = []
         for entity in entities:
             entity.ns = entity.ns.lower()
             transformed_entities.append(entity.curie)
-        return ";".join(transformed_entities)
 
-    def transform_interventions(self, trial: Trial) -> str:
-        """Transforms a list of interventions into a string."""
-        return self._transform_entities(set(trial.interventions))
+        transformed_entities = set(transformed_entities)
+        return join_list_to_str(transformed_entities)
 
-    def transform_conditions(self, trial: Trial) -> str:
-        """Transforms a list of conditions into a string."""
-        return self._transform_entities(set(trial.conditions))
 
     @staticmethod
     def transform_design(trial: Trial) -> str:
@@ -96,14 +93,16 @@ class Transformer:
     @staticmethod
     def transform_labels(node: Node) -> str:
         """Transforms the type of trial into a string."""
-        return ";".join([label for label in node.labels])
+        return join_list_to_str(node.labels)
 
     @staticmethod
     def transform_title(trial: Trial) -> str:
         """Transforms the title of a trial into a string."""
         return trial.title.strip()
 
-    def flatten_bioentity(self, entity: BioEntity) -> Tuple[str, str, str, str]:
+    def flatten_bioentity(
+        self, entity: BioEntity
+    ) -> Tuple[str, str, str, str]:
         """Flattens a BioEntity into a tuple of strings.
 
         Parameters
@@ -116,7 +115,12 @@ class Transformer:
         Tuple[str, str, str, str]
             A tuple of the flattened BioEntity. In order of curie, term, source.
         """
-        return entity.curie, entity.term, self.transform_labels(entity), entity.source
+        return (
+            entity.curie,
+            entity.grounded_term,
+            self.transform_labels(entity),
+            entity.source,
+        )
 
     @staticmethod
     def flatten_edge(edge: Edge) -> Tuple[str, str, str, str, str]:
@@ -133,9 +137,8 @@ class Transformer:
             A tuple of the flattened Edge. In order of trial_curie, bio_ent_curie, rel_type, rel_type_curie, source.
         """
         return (
-            edge.trial_curie,
-            edge.bio_ent_curie,
+            edge.trial.curie,
+            edge.entity.curie,
             edge.rel_type,
-            edge.rel_type_curie,
             edge.source,
         )
