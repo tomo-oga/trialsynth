@@ -3,11 +3,21 @@
 import requests
 from overrides import overrides
 from tqdm import tqdm
+import logging
 
-from ..base.config import Config
-from ..base.fetch import Fetcher, logger
-from ..base.models import BioEntity, DesignInfo, Outcome, SecondaryId, Trial
+from ..base.fetch import Fetcher
+from ..base.models import (
+    Condition,
+    DesignInfo,
+    Intervention,
+    Outcome,
+    SecondaryId,
+    Trial,
+)
 from .rest_api_response_models import UnflattenedTrial
+from .config import CTConfig
+
+logger = logging.getLogger(__name__)
 
 
 class CTFetcher(Fetcher):
@@ -30,7 +40,7 @@ class CTFetcher(Fetcher):
         User-mutable properties of registry data processing
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: CTConfig):
         super().__init__(config)
         self.api_parameters = {
             "fields": self.config.api_fields,  # actually column names, not fields
@@ -60,7 +70,7 @@ class CTFetcher(Fetcher):
                 unit_scale=True,
             ) as pbar:
                 pbar.update(page_size)
-                for _ in range(1):
+                for _ in range(int(pages)):
                     self._read_next_page()
                     pbar.update(page_size)
 
@@ -71,7 +81,14 @@ class CTFetcher(Fetcher):
         self.save_raw_data()
 
     def _read_next_page(self):
-        response = requests.get(self.url, self.api_parameters, timeout=10)
+
+        # TODO: timeout should be a config var
+        timeout = 300
+        try: 
+            response = requests.get(self.url, self.api_parameters, timeout=timeout)
+        except TimeoutError:
+            logger.info(f'Connection timed-out after {timeout}s. To avoid this, either set the timeout max higher, or establish a better internet connection.')
+            raise
         response.raise_for_status()
         json_data = response.json()
 
@@ -81,18 +98,19 @@ class CTFetcher(Fetcher):
         self.api_parameters["pageToken"] = json_data.get("nextPageToken")
 
         if not self.total_pages:
-            self.total_pages = json_data.get("totalCount") / self.api_parameters.get(
-                "pageSize"
-            )
+            self.total_pages = json_data.get(
+                "totalCount"
+            ) / self.api_parameters.get("pageSize")
 
     def _json_to_trials(self, data: dict) -> list[Trial]:
         trials = []
 
         for study in data:
             rest_trial = UnflattenedTrial(**study)
-
+            
             trial = Trial(
-                ns="clinicaltrials", id=rest_trial.protocol_section.id_module.nct_id
+                ns="clinicaltrials",
+                id=rest_trial.protocol_section.id_module.nct_id,
             )
 
             trial.title = rest_trial.protocol_section.id_module.brief_title
@@ -117,23 +135,23 @@ class CTFetcher(Fetcher):
             condition_meshes = (
                 rest_trial.derived_section.condition_browse_module.condition_meshes
             )
-            conditions = rest_trial.protocol_section.conditions_module.conditions
-            trial.conditions = [
-                BioEntity(
-                    term=condition,
-                    labels=["condition"],
+            conditions = (
+                rest_trial.protocol_section.conditions_module.conditions
+            )
+            trial.entities = [
+                Condition(
+                    text=condition,
                     origin=trial.curie,
                     source=self.config.registry,
                 )
                 for condition in conditions
             ]
-            trial.conditions.extend(
+            trial.entities.extend(
                 [
-                    BioEntity(
+                    Condition(
                         ns="MESH",
                         id=mesh.mesh_id,
-                        labels=["condition"],
-                        term=mesh.term,
+                        text=mesh.term,
                         origin=trial.curie,
                         source=self.config.registry,
                     )
@@ -148,23 +166,22 @@ class CTFetcher(Fetcher):
                 rest_trial.derived_section.intervention_browse_module.intervention_meshes
             )
 
-            trial.interventions = [
-                BioEntity(
-                    term=i.name,
-                    labels=["intervention", i.intervention_type],
+            trial.entities.extend([
+                Intervention(
+                    text=i.name,
+                    labels=[i.intervention_type],
                     origin=trial.curie,
                     source=self.config.registry,
                 )
                 for i in intervention_arms
                 if i.name
-            ]
-            trial.interventions.extend(
+            ])
+            trial.entities.extend(
                 [
-                    BioEntity(
+                    Intervention(
                         ns="MESH",
                         id=mesh.mesh_id,
-                        term=mesh.term,
-                        labels=["intervention"],
+                        text=mesh.term,
                         origin=trial.curie,
                         source=self.config.registry,
                     )
@@ -186,9 +203,12 @@ class CTFetcher(Fetcher):
                 Outcome(o.measure, o.time_frame) for o in secondary_outcomes
             ]
 
-            secondary_info = rest_trial.protocol_section.id_module.secondary_ids
+            secondary_info = (
+                rest_trial.protocol_section.id_module.secondary_ids
+            )
             trial.secondary_ids = [
-                SecondaryId(ns=s.id_type, id=s.secondary_id) for s in secondary_info
+                SecondaryId(ns=s.id_type, id=s.secondary_id)
+                for s in secondary_info
             ]
 
             trial.source = self.config.registry

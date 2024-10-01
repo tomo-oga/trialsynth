@@ -1,5 +1,6 @@
 import logging
 import re
+from contextlib import contextmanager
 from typing import Optional
 
 import bioregistry
@@ -28,7 +29,7 @@ ct_namespaces = {
     "JPRN-C": "uminctr",  # new ID format starting with C
     "Clinical Trials Information System": "ctis",
     "CTIS": "ctis",  # site broken
-    "LBCTR": "lctr",  # Lebanon Clinical Trials Registry
+    "LBCTR": "lbctr",  # Lebanon Clinical Trials Registry
     "ITMCTR": "itmctr",  # International Traditional Medicine Clinical Trial Registry
     "IRCT": "irct",  # Iranian clinical trials - IDs don't match web page
     "KCT": "kcris",
@@ -37,15 +38,14 @@ ct_namespaces = {
     "SLCTR": "slctr",  # need to change slashes to dashes to resolve
     "IFV": "rpcec",  # Cuba: Registro Público Cubano de Ensayos Clínicos
     "jRCT": "jrct",  # Japan Registry of Clinical Trials
-    "PHRR": "phrr",  # Philippines trial registry
-    "NL": "ictrp",  # Netherlands old registry, find at trialsearch.who.int using NLXXXX
+    "NL-OMON": "omon",  # Netherlands old registry, find at trialsearch.who.int using NLXXXX
     "PER": "repec",  # Clinical Trials Peruvian Registry
 }
 
 # TODO: consider having namespaces be user-mutable in the future with ini file
 
-CONDITION_NS = ["MESH", "DOID", "EFO", "HP", "GO"]
-INTERVENTION_NS = ["CHEBI", "MESH", "EFO", "HGNC"]
+CONDITION_NS = ["MESH"]
+INTERVENTION_NS = ["MESH"]
 
 
 def get_namespaces() -> dict:
@@ -116,6 +116,10 @@ def make_str(s: str) -> Optional[str]:
         s = s.removeprefix('"').removesuffix('"')
         return s.strip()
     return
+
+
+def join_list_to_str(items: list, delimeter=";"):
+    return delimeter.join([item.strip() for item in items])
 
 
 def must_override(method):
