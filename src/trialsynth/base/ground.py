@@ -1,6 +1,7 @@
 import copy
 import logging
 import warnings
+from collections import defaultdict
 from typing import Iterator, Optional, Callable, Tuple 
 
 nmslib_logger = logging.getLogger('nmslib')
@@ -8,7 +9,7 @@ nmslib_logger.setLevel(logging.ERROR)
 warnings.simplefilter('ignore')
 
 import gilda
-from gilda.grounder import Annotation
+from gilda.grounder import Annotation, ScoredMatch
 from indra.databases import mesh_client
 
 from .models import BioEntity
@@ -115,25 +116,36 @@ class Grounder:
         self, entity: BioEntity, context: Optional[str] = None
     ) -> Iterator[BioEntity]:
         return self.ground(entity, context)
+    
+    def _create_grounded_entity(
+        self, entity: BioEntity, *, mesh_id: str, norm_text: str
+    ) -> BioEntity:
+        grounded_entity = copy.deepcopy(entity)
+        grounded_entity.ns = 'MESH'
+        grounded_entity.ns_id = mesh_id
+        grounded_entity.grounded_term = norm_text
+        return grounded_entity
+
+    def _yield_entity(
+        self, entity: BioEntity, match: ScoredMatch
+    ) -> Iterator[BioEntity]:
+        groundings_dict = dict(match.get_groundings())
+        mesh_id = groundings_dict.get('MESH')
+        
+        if mesh_id:
+            if self.restrict_mesh_prefix and any(mesh_client.has_tree_prefix(mesh_id, prefix) for prefix in self.restrict_mesh_prefix):
+                yield self._create_grounded_entity(
+                    entity, mesh_id=mesh_id, norm_text=match.term.entry_name
+                )
+            if not self.restrict_mesh_prefix:
+                yield self._create_grounded_entity(
+                    entity, mesh_id=mesh_id, norm_text=match.term.entry_name
+                )
 
     def ground(
         self, entity: BioEntity, context: Optional[str] = None
     ) -> Iterator[BioEntity]:
-        """Ground a BioEntity to a CURIE.
-
-        Parameters
-        ----------
-        entity : BioEntity
-            The BioEntity to ground.
-        context : Optional[str]
-            The context of the grounding to aid with disambiguation.
-
-        Yields
-        ------
-        BioEntity
-            The grounded BioEntity.
-        """
-
+        """Ground a BioEntity to a CURIE."""
         entity = self.preprocess(entity)
         if entity.ns and entity.ns.upper() == "MESH" and entity.ns_id:
             mesh_name = mesh_client.get_mesh_name(entity.ns_id, offline=True)
@@ -141,101 +153,25 @@ class Grounder:
                 entity.grounded_term = mesh_name
                 yield entity
             else:
-                # if entity.text not in grounded_terms:
                 matches = gilda.ground(entity.text, namespaces=["MESH"])
                 if matches:
-                    match = matches[0]
-                    for db, id in match.get_groundings():
-                        if db == "MESH":
-                            entity.ns, entity.ns_id, entity.grounded_term = (
-                                db,
-                                id,
-                                match.term.norm_text,
-                            )
-                            yield entity
+                    yield from self._yield_entity(entity, matches[0])
         else:
             matches = gilda.ground(
                 entity.text, namespaces=self.namespaces, context=context
             )
             if matches:
-                match = matches[0]
-                for db, id in match.get_groundings():
-                    if db == "MESH":
-                        if self.restrict_mesh_prefix:
-                            if any(
-                                mesh_client.has_tree_prefix(id, prefix)
-                                for prefix in self.restrict_mesh_prefix
-                            ):
-                                grounded_entity = copy.deepcopy(entity)
-                                (
-                                    grounded_entity.ns,
-                                    grounded_entity.ns_id,
-                                    grounded_entity.grounded_term,
-                                ) = (
-                                    db,
-                                    id,
-                                    match.term.norm_text,
-                                )
-                                yield grounded_entity
-                                break
-                        else:
-                            grounded_entity = copy.deepcopy(entity)
-                            (
-                                grounded_entity.ns,
-                                grounded_entity.ns_id,
-                                grounded_entity.grounded_term,
-                            ) = (
-                                db,
-                                id,
-                                match.term.norm_text,
-                            )
-                            yield grounded_entity
-                            break
+                yield from self._yield_entity(entity, matches[0])
             else:
                 annotations = self.annotator(entity.text)
                 for annotation in annotations:
-                    for db, id in annotation.matches[0].get_groundings():
-                        if db == "MESH":
-                            if self.restrict_mesh_prefix:
-                                if any(
-                                    mesh_client.has_tree_prefix(id, prefix)
-                                    for prefix in self.restrict_mesh_prefix
-                                ):
-                                    annotated_entity = copy.deepcopy(entity)
-                                    (
-                                        annotated_entity.ns,
-                                        annotated_entity.ns_id,
-                                        annotated_entity.grounded_term,
-                                    ) = (
-                                        db,
-                                        id,
-                                        annotation.matches[0].term.norm_text,
-                                    )
-                                    yield annotated_entity
-                                    break
-                            else:
-                                annotated_entity = copy.deepcopy(entity)
-                                (
-                                    annotated_entity.ns,
-                                    annotated_entity.ns_id,
-                                    annotated_entity.grounded_term,
-                                ) = (
-                                    db,
-                                    id,
-                                    annotation.matches[0].term.norm_text,
-                                )
-                                yield annotated_entity
-                                break
-
-    def __call__(
-        self, entity: BioEntity, context: Optional[str] = None
-    ) -> Iterator[BioEntity]:
-        return self.ground(entity, context)
+                    yield from self._yield_entity(entity, annotation.matches[0])
+                    
 
 
 class ConditionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'], annotator=SciSpacyAnnotator(model='en_core_sci_lg'))
+        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'], annotator=GildaAnnotator())
 
 
 class InterventionGrounder(Grounder):
