@@ -1,6 +1,11 @@
 import copy
 import logging
-from typing import Iterator, Optional, Callable, Tuple
+import warnings
+from typing import Iterator, Optional, Callable, Tuple 
+
+nmslib_logger = logging.getLogger('nmslib')
+nmslib_logger.setLevel(logging.ERROR)
+warnings.simplefilter('ignore')
 
 import gilda
 from gilda.grounder import Annotation
@@ -10,16 +15,13 @@ from .models import BioEntity
 from .util import (
     CONDITION_NS,
     INTERVENTION_NS,
-    must_override,
-    suppress_logging_info,
-    suppress_warnings,
+    must_override
 )
 
-with suppress_logging_info():
-    import scispacy
-    import spacy
-    from scispacy.abbreviation import AbbreviationDetector
-    from scispacy.linking import EntityLinker
+import scispacy
+import spacy
+from scispacy.abbreviation import AbbreviationDetector
+from scispacy.linking import EntityLinker
 
 logger = logging.getLogger(__name__)
 
@@ -27,26 +29,31 @@ logger = logging.getLogger(__name__)
 class Annotator:
     def __init__(
         self,
-        model: str = "gilda",
         *,
         namespaces: Optional[list[str]] = ["MESH"],
     ):
 
         self.namespaces = namespaces
-        if model == "gilda":
-            self.model = model
-            return
-        with suppress_logging_info(), suppress_warnings():
-            try:
-                self.model = spacy.load(model)
-            except OSError:
-                logger.info("spaCy model not found. Defaulting to gilda for NER.")
-                self.model = "gilda"
 
-    def __call__(self, text: str) -> list[Annotation]:
-        if self.model == "gilda":
-            return gilda.annotate(text, namespaces=self.namespaces)
-        return self.annotate(text)
+    def __call__(self, text: str, *, context: str = None) -> list[Annotation]:
+        return self.annotate(text, context=context)
+
+    @must_override
+    def annotate(self, text: str, *, context: str = None) -> list[Annotation]:
+        pass
+
+class GildaAnnotator(Annotator):
+    def annotate(self, text: str, *, context: str = None):
+        return gilda.annotate(text=text, context_text=context, namespaces=self.namespaces)
+
+class SciSpacyAnnotator(Annotator):
+    def __init__(self, *, model: str, namespaces: Optional[list[str]] = None):
+        super().__init__(namespaces=namespaces)
+        try:
+            self.model = spacy.load(model)
+        except OSError:
+            logger.info("spaCy model not found")
+            raise
 
     def annotate(self, text: str, *, context: str = None):
         context_text = context if context is not None else text
@@ -54,15 +61,12 @@ class Annotator:
 
         annotations: list[Annotation] = []
         for entity in doc.ents:
-            matches = gilda.ground(
-                entity.text, namespaces=self.namespaces, context=context_text
-            )
+            matches = gilda.ground(entity.text, namespaces=self.namespaces, context=context_text)
             if matches:
                 annotations.append(
                     Annotation(entity.text, matches, entity.start_char, entity.end_char)
                 )
-        return annotations
-
+            return annotations
 
 class Grounder:
     """A callable class that grounds a BioEntity to a database identifier.
@@ -231,9 +235,9 @@ class Grounder:
 
 class ConditionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'])
+        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'], annotator=SciSpacyAnnotator(model='en_core_sci_lg'))
 
 
 class InterventionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=INTERVENTION_NS, restrict_mesh_prefix=['D', 'E'])
+        super().__init__(namespaces=INTERVENTION_NS, restrict_mesh_prefix=['D', 'E'], annotator=GildaAnnotator())

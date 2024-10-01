@@ -1,6 +1,5 @@
 import logging
 import re
-import warnings
 from contextlib import contextmanager
 from typing import Optional
 
@@ -151,29 +150,3 @@ def must_override(method):
         return method(*args, **kwargs)
 
     return wrapper
-
-
-@contextmanager
-def suppress_logging_info():
-    # Get the root logger
-    logger = logging.getLogger()
-    # Store the original logging level
-    original_level = logger.level
-    # Suppress logging below WARNING level
-    logger.setLevel(logging.WARNING)
-
-    try:
-        yield
-    finally:
-        # Restore the original logging level
-        logger.setLevel(original_level)
-
-
-@contextmanager
-def suppress_warnings():
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        try:
-            yield
-        finally:
-            pass
