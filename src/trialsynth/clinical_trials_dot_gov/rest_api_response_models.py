@@ -100,6 +100,17 @@ class OutcomesModule(BaseModel):
     primary_outcome: list[Outcome] = Field(alias="primaryOutcomes", default=[])
     secondary_outcome: list[Outcome] = Field(alias="secondaryOutcomes", default=[])
 
+class EligibilityModule(BaseModel):
+    eligibility_criteria: str = Field(alias='eligibilityCriteria', default=None)
+    healthy_volunteers: bool = Field(alias='healthyVolunteers', default=None)
+    sex: str = Field(alias='sex', default=None)
+    gender_based: bool = Field(alias='genderBased', default=None)
+    gender_description: str = Field(alias='genderDescription', default=None)
+    minimum_age: str = Field(alias='minimumAge', default=None)
+    maximum_age: str = Field(alias='maximumAge', default=None)
+    std_age: list[str] = Field(alias='stdAges', default=list())
+    study_population: str = Field(alias='studyPopulation', default=None)
+    sampling_method: str = Field(alias='samplingMethod', default=None)
 
 class ProtocolSection(BaseModel):
 
@@ -114,6 +125,7 @@ class ProtocolSection(BaseModel):
     outcomes_module: OutcomesModule = Field(
         alias="outcomesModule", default=OutcomesModule()
     )
+    eligibility_module: EligibilityModule = Field(alias='eligibilityModule', default=EligibilityModule())
 
 
 class DerivedSection(BaseModel):

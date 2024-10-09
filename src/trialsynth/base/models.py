@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import logging
 from typing import Optional, Union
 
@@ -108,6 +109,10 @@ class Outcome:
         self.measure = measure
         self.time_frame = time_frame
 
+@dataclass
+class Criteria:
+    inclusion: str
+    exclusion: str
 
 # types of all nodes should be standardized to a class holding enumerations in the future.
 
@@ -398,6 +403,7 @@ class Trial(Node):
         self.primary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_ids: list[SecondaryId] = []
+        self.criteria: Union[str, Criteria] = None
 
     @property
     def conditions(self) -> list[Condition]:

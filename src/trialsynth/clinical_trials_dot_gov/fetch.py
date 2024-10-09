@@ -203,6 +203,9 @@ class CTFetcher(Fetcher):
                 Outcome(o.measure, o.time_frame) for o in secondary_outcomes
             ]
 
+            trial.criteria = rest_trial.protocol_section.eligibility_module.eligibility_criteria
+
+
             secondary_info = (
                 rest_trial.protocol_section.id_module.secondary_ids
             )
