@@ -109,10 +109,10 @@ class Outcome:
         self.measure = measure
         self.time_frame = time_frame
 
-@dataclass
 class Criteria:
-    inclusion: str
-    exclusion: str
+    def __init__(self, inclusion: str, exclusion: str):
+        self.inclusion = inclusion
+        self.exclusion = exclusion
 
 # types of all nodes should be standardized to a class holding enumerations in the future.
 

@@ -1,9 +1,11 @@
 """Gets Clinicaltrials.gov data from REST API or saved file"""
 
+from typing import Optional, Tuple
 import requests
 from overrides import overrides
 from tqdm import tqdm
 import logging
+import re
 
 from ..base.fetch import Fetcher
 from ..base.models import (
@@ -13,12 +15,20 @@ from ..base.models import (
     Outcome,
     SecondaryId,
     Trial,
+    Criteria
 )
 from .rest_api_response_models import UnflattenedTrial
 from .config import CTConfig
 
 logger = logging.getLogger(__name__)
 
+split_pattern = re.compile('(?:Inclusion(?: Criteria)?:?)\s*(.*)(?:Exclusion(?: Criteria)?:?)\s*(.*)', re.DOTALL | re.IGNORECASE)
+
+def _split_criteria(criteria: str) -> Optional[Tuple[str, str]]:
+    match = split_pattern.search(criteria)
+    if match:
+        return match.groups()
+    return None
 
 class CTFetcher(Fetcher):
     """Fetches data from the Clinicaltrials.gov REST API and transforms it into a list of :class:`Trial` objects
@@ -203,8 +213,16 @@ class CTFetcher(Fetcher):
                 Outcome(o.measure, o.time_frame) for o in secondary_outcomes
             ]
 
-            trial.criteria = rest_trial.protocol_section.eligibility_module.eligibility_criteria
+            criteria = rest_trial.protocol_section.eligibility_module.eligibility_criteria
 
+            if criteria is not None:
+                split_criteria = _split_criteria(criteria)
+                if split_criteria:
+                    inclusion, exclusion = split_criteria
+                    trial.criteria = Criteria(inclusion=inclusion, exclusion=exclusion)
+                else:
+                    trial.criteria = criteria
+            
 
             secondary_info = (
                 rest_trial.protocol_section.id_module.secondary_ids
