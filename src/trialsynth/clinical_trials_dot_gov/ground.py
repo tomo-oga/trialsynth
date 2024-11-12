@@ -14,3 +14,4 @@ class CTInterventionGrounder(InterventionGrounder):
     @overrides
     def preprocess(self, entity: BioEntity, *kwargs) -> BioEntity:
         return entity
+
