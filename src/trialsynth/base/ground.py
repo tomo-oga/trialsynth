@@ -3,7 +3,6 @@ import re
 import copy
 import logging
 import warnings
-from collections import defaultdict
 from typing import Iterator, Optional, Callable, Tuple 
 
 nmslib_logger = logging.getLogger('nmslib')
@@ -12,13 +11,11 @@ warnings.simplefilter('ignore')
 
 import gilda
 from gilda.grounder import Annotation, ScoredMatch
-from gilda.process import normalize
 from indra.databases import mesh_client
 import scispacy
 import spacy
 from scispacy.abbreviation import AbbreviationDetector
 from scispacy.linking import EntityLinker
-from abbreviations.schwartz_hearst import extract_abbreviation_definition_pairs
 
 from .models import BioEntity
 from .util import (
@@ -34,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class Annotator:
+    """Annotator class that sets the behavior for annotating text."""
     def __init__(
         self,
         *,
@@ -80,59 +78,6 @@ class SciSpacyAnnotator(Annotator):
                     Annotation(entity.text, matches, entity.start_char, entity.end_char)
                 )
             return annotations
-
-class CosmicGeneAnnotator(Annotator):
-    def __init__(self, *, namespaces: Optional[list[str]] = ['HGNC'], grounder: Optional[gilda.Grounder] = None):
-        super().__init__(namespaces=namespaces, grounder=grounder)
-        self.gene_census = self._get_gene_census()
-        self.ignore_terms = self._get_ignore_terms()
-
-    @staticmethod
-    def _get_gene_census() -> list[str]:
-        with open(os.path.join(os.path.dirname(__file__), 'resources/cosmic_genes.csv')) as f:
-            return f.read().splitlines()
-        
-    @staticmethod
-    def _get_ignore_terms() -> list[str]:
-        with open(os.path.join(os.path.dirname(__file__), 'resources/ignore.csv')) as f:
-            ignore = [normalize(line.strip()) for line in f]
-            ignore.extend(['ago', 'wish', 'warts', 'oasis', 'thc'])
-        return ignore
-    
-    @staticmethod
-    def preprocess_criteria(criteria: str) -> str:
-        sentences = re.split(r'\n\n|\n', criteria)
-        cleaned_sentences = []
-        for sentence in sentences:
-            cleaned_sentence = sentence.strip()
-            cleaned_sentence = re.sub(r'^\*|^[0-9].', '', cleaned_sentence)
-            if cleaned_sentence:
-                cleaned_sentences.append(cleaned_sentence.strip())
-        
-        return '\n'.join(cleaned_sentences)
-    
-    def annotate(self, text: str, *, context: str = None):
-        context_text = context if context is not None else text
-        abbr_resolved_text = context_text
-
-        cleaned_text = self.preprocess_criteria(text)
-        abbreviations = extract_abbreviation_definition_pairs(doc_text=cleaned_text, first_definition=True)
-        for sf, lf in abbreviations.items():
-            abbr_resolved_text = abbr_resolved_text.replace(sf, lf)
-        
-        annotations = gilda.annotate(abbr_resolved_text, context_text=text, namespaces=self.namespaces)
-        filtered_annotations = []
-        for annotation in annotations:
-            entry_name = annotation.matches[0].term.entry_name
-            if entry_name in self.gene_census:
-                norm_text = annotation.matches[0].term.entry_name
-                if norm_text in self.ignore_terms:
-                    continue
-                try:
-                    norm_text = int(norm_text) # ignore integers
-                except ValueError:
-                    filtered_annotations.append(annotation)
-        return filtered_annotations
 
 
 

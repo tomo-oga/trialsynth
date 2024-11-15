@@ -258,6 +258,19 @@ class Intervention(BioEntity):
         if labels:
             self.labels.extend(labels)
 
+class Gene(BioEntity):
+    def __init__(
+        self,
+        text: str,
+        origin: str,
+        source: str,
+        labels: Optional[list[str]] = None,
+        ns: Optional[str] = None,
+        id: Optional[str] = None,
+    ):
+        super().__init__(text=text, labels=['gene'], origin=origin, source=source, ns=ns, id=id)
+        if labels:
+            self.labels.extend(labels)
 
 class BioEntity(Node):
     """Holds information about a biological entity
