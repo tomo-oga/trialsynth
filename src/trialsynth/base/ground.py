@@ -1,5 +1,3 @@
-import os
-import re
 import copy
 import logging
 import warnings
@@ -18,11 +16,8 @@ from scispacy.abbreviation import AbbreviationDetector
 from scispacy.linking import EntityLinker
 
 from .models import BioEntity
-from .util import (
-    CONDITION_NS,
-    INTERVENTION_NS,
-    must_override
-)
+from .util import must_override
+
 
 
 logger = logging.getLogger(__name__)
@@ -31,14 +26,21 @@ logger = logging.getLogger(__name__)
 
 
 class Annotator:
-    """Annotator class that sets the behavior for annotating text."""
+    """Annotator class that sets the behavior for annotating text.
+
+    Parameters
+    ----------
+    namespaces : Optional[list[str]], optional
+        The namespaces to ground to, by default ["MESH"]
+    grounder : Optional[gilda.Grounder], optional
+        The grounder to use, by default None, which calls the default `gilda.Grounder()`
+    """
     def __init__(
         self,
         *,
         namespaces: Optional[list[str]] = ["MESH"],
         grounder: Optional[gilda.Grounder] = None
     ):
-
         self.namespaces = namespaces
 
         if not grounder:
@@ -54,7 +56,21 @@ class Annotator:
         pass
 
 class GildaAnnotator(Annotator):
-    def annotate(self, text: str, *, context: str = None):
+    def annotate(self, text: str, *, context: str = None) -> list[Annotation]:
+        """Annotates and grounds entities to unique concept identifiers using Gilda.
+
+        Parameters
+        ----------
+        text : str
+            The text to annotate.
+        context : str, optional
+            The text to use for disambiguation, by default None
+
+        Returns
+        -------
+        list[Annotation]    
+            The list of annotations for the text.
+        """
         return gilda.annotate(text=text, context_text=context, namespaces=self.namespaces)
 
 class SciSpacyAnnotator(Annotator):
@@ -83,27 +99,21 @@ class SciSpacyAnnotator(Annotator):
 
 
 class Grounder:
-    """A callable class that grounds a BioEntity to a database identifier.
+    """A callable class that annotates and grounds BioEntities to unique concept identifiers.
 
     Parameters
     ----------
-    namespaces : Optional[list[str]]
-        A list of namespaces to consider for grounding (default: None).
-
-    Attributes
-    ----------
-    namespaces : Optional[list[str]]
-        A list of namespaces to consider for grounding.
+    restrict_mesh_prefix : list[str], optional
+        The mesh prefixes to restrict by, by default None
+    annotator : Callable[[str], list[Tuple[Annotation]]], optional
+        The annotator to use for grounding, by default Annotator()
     """
-
     def __init__(
         self,
         *,
-        namespaces: Optional[list[str]] = None,
         restrict_mesh_prefix: list[str] = None,
         annotator: Callable[[str], list[Tuple[Annotation]]] = Annotator(),
     ):
-        self.namespaces: Optional[list[str]] = namespaces
         self.restrict_mesh_prefix = restrict_mesh_prefix
         self.annotator = annotator
 
@@ -124,6 +134,7 @@ class Grounder:
         BioEntity
             The preprocessed BioEntity.
         """
+        pass
 
     def __call__(
         self, entity: BioEntity, context: Optional[str] = None
@@ -171,7 +182,7 @@ class Grounder:
                     yield from self._yield_entity(entity, matches[0])
         else:
             matches = gilda.ground(
-                entity.text, namespaces=self.namespaces, context=context
+                entity.text, namespaces=['MESH'], context=context
             )
             if matches:
                 yield from self._yield_entity(entity, matches[0])
@@ -184,9 +195,9 @@ class Grounder:
 
 class ConditionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=CONDITION_NS, restrict_mesh_prefix=['C', 'F'], annotator=GildaAnnotator())
+        super().__init__(restrict_mesh_prefix=['C', 'F'], annotator=GildaAnnotator())
 
 
 class InterventionGrounder(Grounder):
     def __init__(self):
-        super().__init__(namespaces=INTERVENTION_NS, restrict_mesh_prefix=['D', 'E'], annotator=GildaAnnotator())
+        super().__init__(restrict_mesh_prefix=['D', 'E'], annotator=GildaAnnotator())
