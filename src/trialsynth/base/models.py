@@ -265,12 +265,12 @@ class Gene(BioEntity):
         origin: str,
         source: str,
         labels: Optional[list[str]] = None,
-        ns: Optional[str] = None,
         id: Optional[str] = None,
     ):
-        super().__init__(text=text, labels=['gene'], origin=origin, source=source, ns=ns, id=id)
+        super().__init__(text=text, labels=['gene'], origin=origin, source=source, ns='hgnc', id=id)
         if labels:
             self.labels.extend(labels)
+        self.grounded_term = text
 
 class BioEntity(Node):
     """Holds information about a biological entity
