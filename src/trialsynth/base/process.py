@@ -1,9 +1,13 @@
+import re
 import logging
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
 import click
 import gilda
+import spacy
+from negspacy.negation import NegEx
+from negspacy.termsets import termset
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
@@ -11,7 +15,7 @@ from . import store
 from .config import Config
 from .fetch import Fetcher
 from .ground import ConditionGrounder, InterventionGrounder
-from .models import Condition, Intervention, Edge, Trial
+from .models import Edge, Trial, Criteria
 from .transform import Transformer
 from .validate import Validator
 
@@ -143,11 +147,12 @@ class Processor:
         """Processes registry data into a graph structure."""
         self.fetcher.get_api_data(reload=self.reload_api_data)
         self.trials = self.fetcher.raw_data
+
+        self.preprocess_criteria()
         #  ground and process bioentities for storing
         self.get_bioentities()
         self.process_bioentities()
 
-        # remove duplicate trial entries, using this instead of curie_trial_dict to avoid accessing hash structure
         # create edges
         self.create_edges()
 
@@ -158,6 +163,88 @@ class Processor:
         if self.validate:
             self.validate_data()
 
+    def preprocess_criteria(self):
+        nlp = spacy.load('en_core_sci_md')
+        nlp.add_pipe("negex", config = {'neg_termset': termset('en_clinical_sensitive').get_patterns()})
+        
+        for trial in tqdm(
+            self.trials,
+            desc="Preprocessing criteria",
+            unit="trial",
+            unit_scale=True,
+        ):
+            if not trial.criteria:
+                continue
+
+            if trial.criteria.inclusion:
+                inclusion = self._split_criteria(inclusion)
+            
+            if exclusion:
+                exclusion = self._split_criteria(exclusion)
+            else:
+                exclusion = []
+            
+            inclusion = []
+            processed_inclusion = [nlp(criteria) for criteria in inclusion]
+            processed_exclusion = [nlp(criteria) for criteria in exclusion]
+
+            not_inclusion = []
+            for criteria in processed_inclusion:
+                for ent in criteria.ents:
+                    if ent._.negex:
+                        not_inclusion.append(ent.text)
+                        break
+            
+            not_exclusion = []
+            for criteria in processed_exclusion:
+                for ent in criteria.ents:
+                    if ent._.negex:
+                        not_exclusion.append(ent.text)
+                        break
+            
+            
+            inc_criteria_without_negation = []
+            for criteria in processed_inclusion:
+                if criteria.text not in not_inclusion:
+                    inc_criteria_without_negation.append(criteria.text)
+
+            inc_criteria_without_negation.extend(not_exclusion)
+            
+            exc_criteria_without_negation = []
+            for criteria in processed_exclusion:
+                if criteria.text not in not_exclusion:
+                    exc_criteria_without_negation.append(criteria.text)
+            
+            exc_criteria_without_negation.extend(not_inclusion)
+
+            trial.criteria = Criteria(inclusion=inc_criteria_without_negation, exclusion=exc_criteria_without_negation)
+
+        
+    @staticmethod
+    def _split_criteria(criteria: str) -> str:
+        """Preprocess the criteria text by removing leading numbers and bullet points for compatibility with Schwartz-Hearst algorithm.
+        
+        Parameters
+        ----------
+        criteria : str
+            The criteria text to preprocess.
+        
+        Returns
+        -------
+        str
+            The preprocessed criteria text.
+        """
+        sentences = re.split(r'\n\n|\n', criteria)
+        cleaned_sentences = []
+        for sentence in sentences:
+            cleaned_sentence = sentence.strip()
+            cleaned_sentence = re.sub(r'^\*|^[0-9].', '', cleaned_sentence)
+            if cleaned_sentence:
+                cleaned_sentences.append(cleaned_sentence.strip())
+        
+        return cleaned_sentences
+
+            
     def get_bioentities(self):
         """Extracts bioentities from trials and creates a dictionary of trial CURIEs to trials."""
 
