@@ -46,11 +46,12 @@ ct_namespaces = {
 
 CONDITION_NS = ["MESH"]
 INTERVENTION_NS = ["MESH"]
+GENE_NS = ["HGNC"]
 
 
 def get_namespaces() -> dict:
     """Get the namespaces for the clinical trial registries and bioentity ontologies"""
-    entity_namespaces = CONDITION_NS + INTERVENTION_NS
+    entity_namespaces = set(CONDITION_NS + INTERVENTION_NS + GENE_NS)
 
     for ns in entity_namespaces:
         ct_namespaces[ns] = ns.lower()
