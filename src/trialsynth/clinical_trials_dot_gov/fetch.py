@@ -221,7 +221,7 @@ class CTFetcher(Fetcher):
                     inclusion, exclusion = split_criteria
                     trial.criteria = Criteria(inclusion=inclusion, exclusion=exclusion)
                 else:
-                    trial.criteria = criteria
+                    trial.criteria = Criteria(inclusion=criteria)
             
 
             secondary_info = (
