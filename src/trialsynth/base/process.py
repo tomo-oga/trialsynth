@@ -6,10 +6,12 @@ from typing import Callable, Dict, Optional, Tuple
 import click
 import gilda
 import spacy
+import torch
 from negspacy.negation import NegEx
 from negspacy.termsets import termset
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
+from transformers import AutoTokenizer, AutoModel
 
 from . import store
 from .config import Config
@@ -18,6 +20,7 @@ from .ground import ConditionGrounder, InterventionGrounder
 from .models import Edge, Trial, Criteria
 from .transform import Transformer
 from .validate import Validator
+from .util import must_override
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +64,14 @@ def run_processor(
         default=False,
         help="Validate the data",
     )
-    def wrapper(reload: bool, store_samples: bool, validate: bool):
-        return func(reload, store_samples, validate)
+    @click.option(
+        "-d",
+        "--device",
+        type=str,
+        default=None
+    )
+    def wrapper(reload: bool, store_samples: bool, validate: bool, device: str):
+        return func(reload, store_samples, validate, device)
 
     return wrapper
 
@@ -118,17 +127,28 @@ class Processor:
         transformer: Transformer,
         grounders: Tuple[ConditionGrounder, InterventionGrounder],
         validator: Validator,
+        sentence_split_fun: Callable[[str], list[str]],
         reload_api_data: bool = False,
         store_samples: bool = False,
         validate: bool = True,
+        device: Optional[str] = None,
     ):
         self.config = config
 
         self.fetcher = fetcher
 
         self.transformer = transformer
+
+        self.sentence_split_fun = sentence_split_fun
         self.validator = validator
 
+        try:
+            _ = torch.empty(1).to(torch.device(1))
+            self.device = torch.device(device)
+        except RuntimeError:
+            logger.info(f'Device type: \'{device}\' is not available. Defaulting to cpu.')
+            self.device = torch.device('cpu')
+        
         self.trials: list[Trial] = []
 
         self.curie_to_trial: Dict[str, Trial] = {}
@@ -142,6 +162,8 @@ class Processor:
         self.reload_api_data: bool = reload_api_data
         self.store_samples: bool = store_samples
         self.validate: bool = validate
+
+        
 
     def run(self):
         """Processes registry data into a graph structure."""
@@ -184,7 +206,6 @@ class Processor:
             else:
                 exclusion = []
             
-            inclusion = []
             processed_inclusion = [nlp(criteria) for criteria in inclusion]
             processed_exclusion = [nlp(criteria) for criteria in exclusion]
 
@@ -219,7 +240,6 @@ class Processor:
 
             trial.criteria = Criteria(inclusion=inc_criteria_without_negation, exclusion=exc_criteria_without_negation)
 
-        
     @staticmethod
     def _split_criteria(criteria: str) -> str:
         """Preprocess the criteria text by removing leading numbers and bullet points for compatibility with Schwartz-Hearst algorithm.
@@ -243,8 +263,24 @@ class Processor:
                 cleaned_sentences.append(cleaned_sentence.strip())
         
         return cleaned_sentences
+        
+    
+    def embed_criteria(self):
+        tokenizer = AutoTokenizer.from_pretrained("neuml/pubmedbert-base-embeddings")
+        model = AutoModel.from_pretrained("neuml/pubmedbert-base-embeddings").to(self.device)
 
+        for trial in self.trials:
+            split_criteria = self.sentence_split_fun(trial.criteria)
+
+            inputs = tokenizer(split_criteria, padding=True, truncation=True, max_length=512, return_tensors='pt').to(self.device)
+
+            with torch.no_grad():
+                output = model(**inputs)[0]
             
+            mask = inputs['attention_mask'].unsqueeze(-1).expand(output.size()).float()
+            
+            trial.criteria_embeddings = torch.mean(torch.sum(output * mask, 1) / torch.clamp(mask.sum(1), min=1e-9), dim=0)
+
     def get_bioentities(self):
         """Extracts bioentities from trials and creates a dictionary of trial CURIEs to trials."""
 
