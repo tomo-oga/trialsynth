@@ -80,7 +80,7 @@ class CTFetcher(Fetcher):
                 unit_scale=True,
             ) as pbar:
                 pbar.update(page_size)
-                for _ in range(int(pages)):
+                for _ in range(1):
                     self._read_next_page()
                     pbar.update(page_size)
 
@@ -221,7 +221,7 @@ class CTFetcher(Fetcher):
                     inclusion, exclusion = split_criteria
                     trial.criteria = Criteria(inclusion=inclusion, exclusion=exclusion)
                 else:
-                    trial.criteria = Criteria(inclusion=criteria)
+                    trial.criteria = Criteria(inclusion=criteria, exclusion=None)
             
 
             secondary_info = (
