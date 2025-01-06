@@ -419,7 +419,6 @@ class Trial(Node):
         self.secondary_outcomes: list[Union[Outcome, str]] = []
         self.secondary_ids: list[SecondaryId] = []
         self.criteria: Union[str, Criteria] = None
-        self.criteria_embeddings = None
 
     @property
     def conditions(self) -> list[Condition]:

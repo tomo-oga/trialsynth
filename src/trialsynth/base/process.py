@@ -7,7 +7,8 @@ import click
 import gilda
 import spacy
 import torch
-from negspacy.negation import NegEx
+import pickle
+import gzip as gz
 from negspacy.termsets import termset
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -143,7 +144,7 @@ class Processor:
         self.validator = validator
 
         try:
-            _ = torch.empty(1).to(torch.device(1))
+            _ = torch.empty(1).to(torch.device(device))
             self.device = torch.device(device)
         except RuntimeError:
             logger.info(f'Device type: \'{device}\' is not available. Defaulting to cpu.')
@@ -159,6 +160,8 @@ class Processor:
 
         self.edges: list[Edge] = []
 
+        self.embeddings: dict[str, torch.Tensor] = {}
+
         self.reload_api_data: bool = reload_api_data
         self.store_samples: bool = store_samples
         self.validate: bool = validate
@@ -170,7 +173,8 @@ class Processor:
         self.fetcher.get_api_data(reload=self.reload_api_data)
         self.trials = self.fetcher.raw_data
 
-        self.preprocess_criteria()
+        # self.preprocess_criteria()
+        self.embed_criteria()
         #  ground and process bioentities for storing
         self.get_bioentities()
         self.process_bioentities()
@@ -240,37 +244,27 @@ class Processor:
 
             trial.criteria = Criteria(inclusion=inc_criteria_without_negation, exclusion=exc_criteria_without_negation)
 
-    @staticmethod
-    def _split_criteria(criteria: str) -> str:
-        """Preprocess the criteria text by removing leading numbers and bullet points for compatibility with Schwartz-Hearst algorithm.
-        
-        Parameters
-        ----------
-        criteria : str
-            The criteria text to preprocess.
-        
-        Returns
-        -------
-        str
-            The preprocessed criteria text.
-        """
-        sentences = re.split(r'\n\n|\n', criteria)
-        cleaned_sentences = []
-        for sentence in sentences:
-            cleaned_sentence = sentence.strip()
-            cleaned_sentence = re.sub(r'^\*|^[0-9].', '', cleaned_sentence)
-            if cleaned_sentence:
-                cleaned_sentences.append(cleaned_sentence.strip())
-        
-        return cleaned_sentences
-        
-    
     def embed_criteria(self):
         tokenizer = AutoTokenizer.from_pretrained("neuml/pubmedbert-base-embeddings")
         model = AutoModel.from_pretrained("neuml/pubmedbert-base-embeddings").to(self.device)
 
-        for trial in self.trials:
-            split_criteria = self.sentence_split_fun(trial.criteria)
+        for trial in tqdm(self.trials, desc='Embedding trial criteria', unit='trial', unit_scale=True):
+
+            if not trial.criteria:
+                continue
+            
+            if isinstance(trial.criteria, str):
+                split_criteria = self.sentence_split_fun(trial.criteria)
+            else:
+                if trial.criteria.inclusion:
+                    inclusion = self.sentence_split_fun(trial.criteria.inclusion)
+                
+                if trial.criteria.exclusion:
+                    exclusion = self.sentence_split_fun(trial.criteria.exclusion)
+                else:
+                    exclusion = []
+
+                split_criteria = inclusion + exclusion
 
             inputs = tokenizer(split_criteria, padding=True, truncation=True, max_length=512, return_tensors='pt').to(self.device)
 
@@ -279,7 +273,7 @@ class Processor:
             
             mask = inputs['attention_mask'].unsqueeze(-1).expand(output.size()).float()
             
-            trial.criteria_embeddings = torch.mean(torch.sum(output * mask, 1) / torch.clamp(mask.sum(1), min=1e-9), dim=0)
+            self.embeddings[trial.curie] = torch.mean(torch.sum(output * mask, 1) / torch.clamp(mask.sum(1), min=1e-9), dim=0)
 
     def get_bioentities(self):
         """Extracts bioentities from trials and creates a dictionary of trial CURIEs to trials."""
@@ -434,6 +428,11 @@ class Processor:
             num_samples=self.config.num_sample_entries,
         )
 
+    def save_embeddings(self, path: Path):
+        with gz.open(path, mode='wb') as f:
+            pickle.dump(self.embeddings, f)
+
+
     def save_data(self):
         """Saves processed data to compressed tsv files."""
 
@@ -463,6 +462,11 @@ class Processor:
                 else None
             ),
         )
+
+        logger.info(
+            f"Storing eligibility criteria embeddings to {self.config.embeddings_path}"
+        )
+        self.save_embeddings(self.config.embeddings_path)
 
         # save edges to compressed tsv
         logger.info(

@@ -80,6 +80,8 @@ class Config:
             self.get_config("TRIAL_SAMPLE_FILE")
         )
 
+        self.embeddings_path = self.get_data_path(self.get_config("EMBEDDINGS_PATH"))
+
         self.num_sample_entries = int(self.get_config("NUM_SAMPLE_ENTRIES"))
 
         self.api_url: str = self.get_config("API_URL")
