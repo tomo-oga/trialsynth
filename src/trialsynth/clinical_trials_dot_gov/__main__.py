@@ -3,10 +3,10 @@ from .process import CTProcessor
 
 
 @run_processor
-def main(reload: bool, store_samples: bool, validate: bool):
+def main(reload: bool, store_samples: bool, validate: bool, device: str):
 
     CTProcessor(
-        reload_api_data=reload, store_samples=store_samples, validate=validate
+        reload_api_data=reload, store_samples=store_samples, validate=validate, device=device
     ).run()
 
 
